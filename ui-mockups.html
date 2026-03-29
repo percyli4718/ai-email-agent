@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UI/UX Mockups - AI Agent 邮件处理系统</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0e1a;
+            color: #e2e8f0;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        .container { max-width: 1600px; margin: 0 auto; }
+        h1 { color: #60a5fa; margin-bottom: 10px; font-size: 28px; }
+        h2 { color: #94a3b8; margin: 40px 0 20px; font-size: 18px; border-bottom: 1px solid #1e293b; padding-bottom: 10px; }
+        .subtitle { color: #64748b; margin-bottom: 40px; }
+
+        .mockup-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .mockup {
+            background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%);
+            border: 1px solid #334155;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+        }
+        .mockup-header {
+            background: linear-gradient(90deg, #1e293b, #334155);
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid #475569;
+        }
+        .dot { width: 12px; height: 12px; border-radius: 50%; }
+        .dot.red { background: #ef4444; }
+        .dot.yellow { background: #f59e0b; }
+        .dot.green { background: #10b981; }
+        .mockup-title { margin-left: 12px; color: #94a3b8; font-size: 12px; font-family: monospace; }
+
+        .mockup-body { padding: 20px; }
+
+        /* Email Inbox Styles */
+        .email-item {
+            display: flex;
+            gap: 15px;
+            padding: 15px;
+            border-bottom: 1px solid #1e293b;
+            transition: background 0.2s;
+            cursor: pointer;
+        }
+        .email-item:hover { background: rgba(96,165,250,0.1); }
+        .email-item:last-child { border-bottom: none; }
+        .email-status {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            margin-top: 5px;
+        }
+        .status-new { background: #10b981; box-shadow: 0 0 10px #10b981; }
+        .status-processing { background: #f59e0b; box-shadow: 0 0 10px #f59e0b; }
+        .status-done { background: #64748b; }
+        .email-content h4 { color: #e2e8f0; font-size: 14px; margin-bottom: 4px; }
+        .email-content p { color: #94a3b8; font-size: 12px; }
+        .email-meta { margin-left: auto; text-align: right; }
+        .email-time { color: #64748b; font-size: 11px; }
+        .email-priority {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            margin-top: 5px;
+        }
+        .priority-high { background: rgba(239,68,68,0.2); color: #ef4444; }
+        .priority-medium { background: rgba(245,158,11,0.2); color: #f59e0b; }
+        .priority-low { background: rgba(100,116,139,0.2); color: #94a3b8; }
+
+        /* Analysis Panel */
+        .analysis-section {
+            background: rgba(15,23,42,0.5);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        .analysis-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .analysis-title { color: #60a5fa; font-size: 13px; font-weight: 600; }
+        .analysis-badge {
+            background: rgba(96,165,250,0.2);
+            color: #60a5fa;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+        }
+        .structured-output {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+        .output-field {
+            background: #0f172a;
+            border: 1px solid #1e293b;
+            border-radius: 6px;
+            padding: 10px;
+        }
+        .field-label { color: #64748b; font-size: 10px; text-transform: uppercase; margin-bottom: 4px; }
+        .field-value { color: #e2e8f0; font-size: 13px; font-family: monospace; }
+
+        /* Layer Execution Log */
+        .layer-log {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .layer-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px;
+            background: #0f172a;
+            border-radius: 8px;
+            border-left: 3px solid;
+        }
+        .layer-item.layer1 { border-color: #10b981; }
+        .layer-item.layer2 { border-color: #a855f7; }
+        .layer-item.layer3 { border-color: #f97316; }
+        .layer-icon { font-size: 16px; }
+        .layer-info { flex: 1; }
+        .layer-name { color: #e2e8f0; font-size: 12px; font-weight: 500; }
+        .layer-time { color: #64748b; font-size: 10px; }
+        .layer-status {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+        }
+        .status-success { background: rgba(16,185,129,0.2); color: #10b981; }
+        .status-running { background: rgba(245,158,11,0.2); color: #f59e0b; }
+
+        /* Agent Monitor */
+        .agent-card {
+            background: linear-gradient(145deg, rgba(249,115,22,0.1), rgba(15,23,42,0.5));
+            border: 1px solid rgba(249,115,22,0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .agent-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .agent-name { color: #f97316; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+        .agent-status {
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 10px;
+            background: rgba(16,185,129,0.2);
+            color: #10b981;
+        }
+        .budget-bar {
+            height: 6px;
+            background: #0f172a;
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .budget-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #f97316, #fb923c);
+            border-radius: 3px;
+            transition: width 0.3s;
+        }
+        .budget-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: #94a3b8;
+        }
+        .sub-agent-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .sub-agent {
+            background: rgba(15,23,42,0.8);
+            border: 1px solid #334155;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 11px;
+            color: #cbd5e1;
+        }
+
+        /* Observability Panel */
+        .observability-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .metric-card {
+            background: linear-gradient(145deg, #1e293b, #0f172a);
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+        .metric-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #60a5fa;
+            font-family: 'SF Mono', monospace;
+        }
+        .metric-label {
+            color: #64748b;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 8px;
+        }
+        .metric-trend {
+            font-size: 11px;
+            margin-top: 5px;
+        }
+        .trend-up { color: #10b981; }
+        .trend-down { color: #ef4444; }
+
+        /* Trace Timeline */
+        .trace-timeline {
+            background: #0f172a;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        .trace-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid #1e293b;
+        }
+        .trace-row:last-child { border-bottom: none; }
+        .trace-span {
+            flex: 1;
+            height: 24px;
+            background: linear-gradient(90deg, rgba(96,165,250,0.3), rgba(96,165,250,0.6));
+            border-radius: 4px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            padding-left: 8px;
+            font-size: 11px;
+            color: #e2e8f0;
+        }
+        .trace-time {
+            color: #64748b;
+            font-size: 10px;
+            width: 60px;
+            text-align: right;
+        }
+
+        /* Prompt Evolution */
+        .prompt-version {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+        }
+        .prompt-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .prompt-name { color: #a855f7; font-size: 12px; font-family: monospace; }
+        .prompt-score {
+            background: rgba(168,85,247,0.2);
+            color: #a855f7;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+        }
+        .prompt-diff {
+            font-size: 10px;
+            color: #64748b;
+            font-family: monospace;
+        }
+        .diff-add { color: #10b981; }
+        .diff-remove { color: #ef4444; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 UI/UX Mockups - AI Agent 邮件处理系统</h1>
+        <p class="subtitle">面试演示界面设计 · 可观测性集成</p>
+
+        <!-- Section 1: Email Inbox -->
+        <h2>📧 1. 邮件处理主界面</h2>
+        <div class="mockup-grid">
+            <div class="mockup">
+                <div class="mockup-header">
+                    <div class="dot red"></div>
+                    <div class="dot yellow"></div>
+                    <div class="dot green"></div>
+                    <span class="mockup-title">收件箱 - 未处理邮件</span>
+                </div>
+                <div class="mockup-body">
+                    <div class="email-item">
+                        <div class="email-status status-new"></div>
+                        <div class="email-content">
+                            <h4>Re: Bulk Order - Paracetamol 500mg</h4>
+                            <p>Hi team, We're interested in placing a large order...</p>
+                            <span class="email-priority priority-high">HIGH</span>
+                        </div>
+                        <div class="email-meta">
+                            <div class="email-time">10:32 AM</div>
+                            <div style="color: #64748b; font-size: 11px;">Brazil</div>
+                        </div>
+                    </div>
+                    <div class="email-item">
+                        <div class="email-status status-processing"></div>
+                        <div class="email-content">
+                            <h4>询价：阿莫西林胶囊 250mg</h4>
+                            <p>您好，我们需要采购以下药品...</p>
+                            <span class="email-priority priority-medium">MEDIUM</span>
+                        </div>
+                        <div class="email-meta">
+                            <div class="email-time">09:15 AM</div>
+                            <div style="color: #64748b; font-size: 11px;">China</div>
+                        </div>
+                    </div>
+                    <div class="email-item">
+                        <div class="email-status status-done"></div>
+                        <div class="email-content">
+                            <h4>Question about shipping terms</h4>
+                            <p>Could you clarify the FOB vs CIF options?</p>
+                            <span class="email-priority priority-low">LOW</span>
+                        </div>
+                        <div class="email-meta">
+                            <div class="email-time">Yesterday</div>
+                            <div style="color: #64748b; font-size: 11px;">Brazil</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mockup">
+                <div class="mockup-header">
+                    <div class="dot red"></div>
+                    <div class="dot yellow"></div>
+                    <div class="dot green"></div>
+                    <span class="mockup-title">AI 分析结果 & 结构化输出</span>
+                </div>
+                <div class="mockup-body">
+                    <div class="analysis-section">
+                        <div class="analysis-header">
+                            <span class="analysis-title">📊 分类结果 (Layer 1)</span>
+                            <span class="analysis-badge">Sonnet · 45ms</span>
+                        </div>
+                        <div class="structured-output">
+                            <div class="output-field">
+                                <div class="field-label">类型</div>
+                                <div class="field-value">采购询盘</div>
+                            </div>
+                            <div class="output-field">
+                                <div class="field-label">优先级</div>
+                                <div class="field-value">HIGH (0.92)</div>
+                            </div>
+                            <div class="output-field">
+                                <div class="field-label">语言</div>
+                                <div class="field-value">英语</div>
+                            </div>
+                            <div class="output-field">
+                                <div class="field-label">路由</div>
+                                <div class="field-value">→ 报价流程</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="analysis-section">
+                        <div class="analysis-header">
+                            <span class="analysis-title">🔗 检索结果 (Layer 2)</span>
+                            <span class="analysis-badge">ChromaDB · 120ms</span>
+                        </div>
+                        <div class="structured-output">
+                            <div class="output-field">
+                                <div class="field-label">相似邮件</div>
+                                <div class="field-value">3 条 (95% 匹配)</div>
+                            </div>
+                            <div class="output-field">
+                                <div class="field-label">客户历史</div>
+                                <div class="field-value">3 次订单</div>
+                            </div>
+                            <div class="output-field">
+                                <div class="field-label">价格政策</div>
+                                <div class="field-value">Tier B 折扣</div>
+                            </div>
+                            <div class="output-field">
+                                <div class="field-label">合规要求</div>
+                                <div class="field-value">ANVISA 许可</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="analysis-section">
+                        <div class="analysis-header">
+                            <span class="analysis-title">📝 结构化输出 (Layer 3)</span>
+                            <span class="analysis-badge">Sonnet · 890ms</span>
+                        </div>
+                        <div class="structured-output">
+                            <div class="output-field">
+                                <div class="field-label">产品</div>
+                                <div class="field-value">Paracetamol 500mg</div>
+                            </div>
+                            <div class="output-field">
+                                <div class="field-label">数量</div>
+                                <div class="field-value">50,000 盒</div>
+                            </div>
+                            <div class="output-field">
+                                <div class="field-label">目的地</div>
+                                <div class="field-value">São Paulo, BR</div>
+                            </div>
+                            <div class="output-field">
+                                <div class="field-label">报价</div>
+                                <div class="field-value">$2.50/盒 FOB</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2: Agent Monitor -->
+        <h2>🤖 2. Agent 合同制监控</h2>
+        <div class="mockup-grid">
+            <div class="mockup" style="grid-column: span 2;">
+                <div class="mockup-header">
+                    <div class="dot red"></div>
+                    <div class="dot yellow"></div>
+                    <div class="dot green"></div>
+                    <span class="mockup-title">CEO Agent - 当前执行任务 #2847</span>
+                </div>
+                <div class="mockup-body">
+                    <div class="agent-card">
+                        <div class="agent-header">
+                            <span class="agent-name">
+                                📋 CEO Agent (任务分解器)
+                            </span>
+                            <span class="agent-status">Running</span>
+                        </div>
+                        <div class="budget-label">
+                            <span>预算消耗</span>
+                            <span>$0.45 / $2.00</span>
+                        </div>
+                        <div class="budget-bar">
+                            <div class="budget-fill" style="width: 22%;"></div>
+                        </div>
+                        <div class="sub-agent-list">
+                            <span class="sub-agent">🔍 价格 Agent</span>
+                            <span class="sub-agent">📄 合规 Agent</span>
+                            <span class="sub-agent">🚚 物流 Agent</span>
+                            <span class="sub-agent">📧 回复生成 Agent</span>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;">
+                        <div class="agent-card" style="margin: 0;">
+                            <div class="agent-header">
+                                <span class="agent-name" style="font-size: 11px;">价格 Agent</span>
+                                <span class="agent-status">✓</span>
+                            </div>
+                            <div class="budget-label"><span>预算</span><span>$0.10</span></div>
+                            <div class="budget-bar"><div class="budget-fill" style="width: 100%;"></div></div>
+                            <div style="font-size: 10px; color: #64748b; margin-top: 8px;">查询价格库完成</div>
+                        </div>
+                        <div class="agent-card" style="margin: 0;">
+                            <div class="agent-header">
+                                <span class="agent-name" style="font-size: 11px;">合规 Agent</span>
+                                <span class="agent-status">✓</span>
+                            </div>
+                            <div class="budget-label"><span>预算</span><span>$0.15</span></div>
+                            <div class="budget-bar"><div class="budget-fill" style="width: 100%;"></div></div>
+                            <div style="font-size: 10px; color: #64748b; margin-top: 8px;">ANVISA 检查通过</div>
+                        </div>
+                        <div class="agent-card" style="margin: 0;">
+                            <div class="agent-header">
+                                <span class="agent-name" style="font-size: 11px;">物流 Agent</span>
+                                <span class="agent-status" style="background: rgba(245,158,11,0.2); color: #f59e0b;">Running</span>
+                            </div>
+                            <div class="budget-label"><span>预算</span><span>$0.12</span></div>
+                            <div class="budget-bar"><div class="budget-fill" style="width: 60%;"></div></div>
+                            <div style="font-size: 10px; color: #64748b; margin-top: 8px;">计算运费中...</div>
+                        </div>
+                        <div class="agent-card" style="margin: 0;">
+                            <div class="agent-header">
+                                <span class="agent-name" style="font-size: 11px;">回复 Agent</span>
+                                <span class="agent-status" style="background: rgba(100,116,139,0.2); color: #94a3b8;">Pending</span>
+                            </div>
+                            <div class="budget-label"><span>预算</span><span>$0.08</span></div>
+                            <div class="budget-bar"><div class="budget-fill" style="width: 0%;"></div></div>
+                            <div style="font-size: 10px; color: #64748b; margin-top: 8px;">等待前置任务</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 3: Observability -->
+        <h2>📈 3. 可观测性仪表盘</h2>
+        <div class="mockup-grid">
+            <div class="mockup">
+                <div class="mockup-header">
+                    <div class="dot red"></div>
+                    <div class="dot yellow"></div>
+                    <div class="dot green"></div>
+                    <span class="mockup-title">核心指标</span>
+                </div>
+                <div class="mockup-body">
+                    <div class="observability-grid">
+                        <div class="metric-card">
+                            <div class="metric-value">247</div>
+                            <div class="metric-label">今日邮件</div>
+                            <div class="metric-trend trend-up">↑ 12% vs 昨日</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">1.2s</div>
+                            <div class="metric-label">平均处理延迟</div>
+                            <div class="metric-trend trend-up">↓ 8% vs 昨日</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">$0.018</div>
+                            <div class="metric-label">平均 Token 成本</div>
+                            <div class="metric-trend trend-up">↓ 5% vs 昨日</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">98.3%</div>
+                            <div class="metric-label">分类准确率</div>
+                            <div class="metric-trend trend-up">↑ 0.3% vs 昨日</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">82%</div>
+                            <div class="metric-label">Sonnet 路由率</div>
+                            <div class="metric-trend" style="color: #64748b;">目标：80%</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">43</div>
+                            <div class="metric-label">Prompt 版本</div>
+                            <div class="metric-trend trend-up">+3 本周</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mockup">
+                <div class="mockup-header">
+                    <div class="dot red"></div>
+                    <div class="dot yellow"></div>
+                    <div class="dot green"></div>
+                    <span class="mockup-title">分布式追踪 (Trace)</span>
+                </div>
+                <div class="mockup-body">
+                    <div class="trace-timeline">
+                        <div class="trace-row">
+                            <span class="trace-time">0ms</span>
+                            <div class="trace-span" style="width: 45ms; background: linear-gradient(90deg, rgba(16,185,129,0.4), rgba(16,185,129,0.7));">分类器 (Layer 1)</div>
+                        </div>
+                        <div class="trace-row">
+                            <span class="trace-time">45ms</span>
+                            <div class="trace-span" style="width: 120ms; background: linear-gradient(90deg, rgba(168,85,247,0.4), rgba(168,85,247,0.7));">向量检索 (Layer 2)</div>
+                        </div>
+                        <div class="trace-row">
+                            <span class="trace-time">165ms</span>
+                            <div class="trace-span" style="width: 890ms; background: linear-gradient(90deg, rgba(249,115,22,0.4), rgba(249,115,22,0.7));">分析生成 (Layer 3)</div>
+                        </div>
+                        <div class="trace-row">
+                            <span class="trace-time">1055ms</span>
+                            <div class="trace-span" style="width: 180ms; background: linear-gradient(90deg, rgba(59,130,246,0.4), rgba(59,130,246,0.7));">CEO Agent 评审</div>
+                        </div>
+                        <div class="trace-row">
+                            <span class="trace-time">1235ms</span>
+                            <div class="trace-span" style="width: 95ms; background: linear-gradient(90deg, rgba(34,197,94,0.4), rgba(34,197,94,0.7));">写入 CRM</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mockup" style="grid-column: span 2;">
+                <div class="mockup-header">
+                    <div class="dot red"></div>
+                    <div class="dot yellow"></div>
+                    <div class="dot green"></div>
+                    <span class="mockup-title">Prompt 进化历史 (Karpathy Autoresearch 模式)</span>
+                </div>
+                <div class="mockup-body">
+                    <div class="prompt-version">
+                        <div class="prompt-header">
+                            <span class="prompt-name">classifier_prompt_v43</span>
+                            <span class="prompt-score">准确率：98.3%</span>
+                        </div>
+                        <div class="prompt-diff">
+                            <span class="diff-add">+ 增加"紧急程度"字段检测</span><br>
+                            <span class="diff-add">+ 优先识别巴西/中国时区</span>
+                        </div>
+                    </div>
+                    <div class="prompt-version">
+                        <div class="prompt-header">
+                            <span class="prompt-name">classifier_prompt_v42</span>
+                            <span class="prompt-score">准确率：97.8%</span>
+                        </div>
+                        <div class="prompt-diff">
+                            <span class="diff-add">+ 优化药品名称识别</span><br>
+                            <span class="diff-remove">- 移除冗余的礼貌用语检测</span>
+                        </div>
+                    </div>
+                    <div class="prompt-version">
+                        <div class="prompt-header">
+                            <span class="prompt-name">classifier_prompt_v41</span>
+                            <span class="prompt-score">准确率：96.1%</span>
+                        </div>
+                        <div class="prompt-diff">
+                            <span class="diff-add">+ 初始多语言支持</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 4: Layer Execution Detail -->
+        <h2>🔬 4. 三层架构执行详情</h2>
+        <div class="mockup-grid">
+            <div class="mockup" style="grid-column: span 2;">
+                <div class="mockup-header">
+                    <div class="dot red"></div>
+                    <div class="dot yellow"></div>
+                    <div class="dot green"></div>
+                    <span class="mockup-title">邮件 #2847 - 完整执行日志</span>
+                </div>
+                <div class="mockup-body">
+                    <div class="layer-log">
+                        <div class="layer-item layer1">
+                            <span class="layer-icon">🔍</span>
+                            <div class="layer-info">
+                                <div class="layer-name">Layer 1: 分类路由 (Claude Sonnet)</div>
+                                <div class="layer-time">输入：原始邮件 → 输出：{type: inquiry, priority: 0.92, lang: en}</div>
+                            </div>
+                            <span class="layer-status status-success">45ms ✓</span>
+                        </div>
+                        <div class="layer-item layer2">
+                            <span class="layer-icon">🔗</span>
+                            <div class="layer-info">
+                                <div class="layer-name">Layer 2: 上下文检索 (ChromaDB + Ollama)</div>
+                                <div class="layer-time">查询：similar_inquiries, customer_history, pricing_policy → 3 条匹配</div>
+                            </div>
+                            <span class="layer-status status-success">120ms ✓</span>
+                        </div>
+                        <div class="layer-item layer3">
+                            <span class="layer-icon">📝</span>
+                            <div class="layer-info">
+                                <div class="layer-name">Layer 3: 分析生成 (Claude Sonnet)</div>
+                                <div class="layer-time">提取：product, quantity, destination → 生成报价 JSON</div>
+                            </div>
+                            <span class="layer-status status-success">890ms ✓</span>
+                        </div>
+                        <div class="layer-item" style="border-color: #f97316;">
+                            <span class="layer-icon">📋</span>
+                            <div class="layer-info">
+                                <div class="layer-name">CEO Agent: 评审决策</div>
+                                <div class="layer-time">决策：PROMOTE → 触发 CRM 写入 + 邮件发送</div>
+                            </div>
+                            <span class="layer-status status-success">180ms ✓</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

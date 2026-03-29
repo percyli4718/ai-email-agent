@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Agent 邮件处理系统架构</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+            background: linear-gradient(135deg, #0d1117 0%, #161b22 50%, #0d1117 100%);
+            color: #c9d1d9;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #58a6ff;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #8b949e;
+            margin-bottom: 40px;
+            font-size: 14px;
+        }
+
+        /* Architecture Flow */
+        .flow-container {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            align-items: center;
+        }
+
+        .layer {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            width: 100%;
+        }
+
+        .box {
+            background: linear-gradient(145deg, #1c2128 0%, #161b22 100%);
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 20px 25px;
+            min-width: 200px;
+            text-align: center;
+            position: relative;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        .box:hover {
+            transform: translateY(-5px);
+            border-color: #58a6ff;
+            box-shadow: 0 8px 30px rgba(88,166,255,0.2);
+        }
+        .box h3 {
+            color: #58a6ff;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+        .box p {
+            color: #8b949e;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .layer-label {
+            position: absolute;
+            left: 20px;
+            color: #8b949e;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .layer-1 .box { border-color: #238636; }
+        .layer-1 h3 { color: #3fb950; }
+
+        .layer-2 .box { border-color: #8957e5; }
+        .layer-2 h3 { color: #a371f7; }
+
+        .layer-3 .box { border-color: #db6d28; }
+        .layer-3 h3 { color: #f0883e; }
+
+        .arrow-down {
+            width: 2px;
+            height: 40px;
+            background: linear-gradient(to bottom, #30363d, #8b949e, #30363d);
+            position: relative;
+        }
+        .arrow-down::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-top: 10px solid #8b949e;
+        }
+
+        .arrow-right {
+            width: 40px;
+            height: 2px;
+            background: linear-gradient(to right, #30363d, #8b949e, #30363d);
+            position: relative;
+        }
+        .arrow-right::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 0;
+            height: 0;
+            border-top: 8px solid transparent;
+            border-bottom: 8px solid transparent;
+            border-left: 10px solid #8b949e;
+        }
+
+        /* Agent Contract Section */
+        .agent-section {
+            margin-top: 60px;
+            background: linear-gradient(145deg, #1c2128 0%, #161b22 100%);
+            border: 1px solid #30363d;
+            border-radius: 16px;
+            padding: 30px;
+        }
+        .agent-section h2 {
+            color: #f0883e;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 20px;
+        }
+        .agent-flow {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .agent-step {
+            flex: 1;
+            min-width: 180px;
+            background: linear-gradient(145deg, #21262d 0%, #1c2128 100%);
+            border: 1px solid #db6d28;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+        }
+        .agent-step h4 {
+            color: #f0883e;
+            font-size: 13px;
+            margin-bottom: 10px;
+        }
+        .agent-step p {
+            color: #8b949e;
+            font-size: 11px;
+            line-height: 1.6;
+        }
+        .agent-badge {
+            display: inline-block;
+            background: rgba(219,109,40,0.2);
+            color: #f0883e;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            margin-top: 8px;
+        }
+
+        /* Legend */
+        .legend {
+            margin-top: 40px;
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+        .legend-color.layer1 { background: #238636; }
+        .legend-color.layer2 { background: #8957e5; }
+        .legend-color.layer3 { background: #db6d28; }
+        .legend-text {
+            color: #8b949e;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📧 AI Agent 邮件处理系统架构</h1>
+        <p class="subtitle">药品分销询盘场景 · 三层 AI 架构 · Agent 合同制</p>
+
+        <div class="flow-container">
+            <!-- Input -->
+            <div class="layer">
+                <div class="box" style="border-color: #58a6ff; min-width: 300px;">
+                    <h3 style="color: #58a6ff;">📥 非结构化输入</h3>
+                    <p>客户邮件 (英文/葡萄牙文/中文)<br>附件：PDF 合同、产品规格书</p>
+                </div>
+            </div>
+
+            <div class="arrow-down"></div>
+
+            <!-- Layer 1: Classification -->
+            <div class="layer layer-1">
+                <span class="layer-label">Layer 1: 分类路由</span>
+                <div class="box">
+                    <h3>🔍 分类器 (Sonnet)</h3>
+                    <p>• 邮件类型识别<br>• 优先级评分<br>• 语言检测<br>• 路由决策</p>
+                </div>
+                <div class="arrow-right"></div>
+                <div class="box">
+                    <h3>📊 路由决策</h3>
+                    <p>• 询盘 → Layer 2<br>• 投诉 → 人工<br>• 常规 → 自动回复</p>
+                </div>
+            </div>
+
+            <div class="arrow-down"></div>
+
+            <!-- Layer 2: Context Retrieval -->
+            <div class="layer layer-2">
+                <span class="layer-label">Layer 2: 上下文检索</span>
+                <div class="box">
+                    <h3>🔗 向量检索</h3>
+                    <p>• ChromaDB 相似邮件<br>• 客户历史对话<br>• 产品知识库</p>
+                </div>
+                <div class="arrow-right"></div>
+                <div class="box">
+                    <h3>📚 Wiki-Link 回溯</h3>
+                    <p>• 合同条款关联<br>• 价格政策引用<br>• 合规性检查</p>
+                </div>
+            </div>
+
+            <div class="arrow-down"></div>
+
+            <!-- Layer 3: Analysis & Generation -->
+            <div class="layer layer-3">
+                <span class="layer-label">Layer 3: 分析生成</span>
+                <div class="box">
+                    <h3>🤖 智能路由</h3>
+                    <p>• 80% Sonnet(成本)<br>• 20% Opus(复杂)<br>• 动态选择</p>
+                </div>
+                <div class="arrow-right"></div>
+                <div class="box">
+                    <h3>📝 结构化输出</h3>
+                    <p>• 提取：产品/数量/目的地<br>• 生成：报价单 JSON<br>• 草稿：回复邮件</p>
+                </div>
+            </div>
+
+            <div class="arrow-down"></div>
+
+            <!-- Output -->
+            <div class="layer">
+                <div class="box" style="border-color: #3fb950; min-width: 300px;">
+                    <h3 style="color: #3fb950;">✅ 业务动作</h3>
+                    <p>• 写入 CRM<br>• 发送报价邮件<br>• 触发合同 Agent</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Agent Contract Section -->
+        <div class="agent-section">
+            <h2>📋 Agent 合同制执行流程</h2>
+            <div class="agent-flow">
+                <div class="agent-step">
+                    <h4>1️⃣ CEO Agent 分解目标</h4>
+                    <p>接收询盘 → 解析为依赖图<br>识别所需子 Agent 类型</p>
+                    <span class="agent-badge">依赖图生成</span>
+                </div>
+                <div class="agent-step">
+                    <h4>2️⃣ 子 Agent 沙箱执行</h4>
+                    <p>• 价格 Agent: 查询价格库<br>• 合规 Agent: 检查出口许可<br>• 物流 Agent: 计算运费</p>
+                    <span class="agent-badge">预算硬 Kill</span>
+                    <span class="agent-badge">写隔离</span>
+                </div>
+                <div class="agent-step">
+                    <h4>3️⃣ CEO 评审交付物</h4>
+                    <p>• Promote: 批准并执行<br>• Redelegate: 重新分配<br>• Reject: 拒绝并记录</p>
+                    <span class="agent-badge">评审决策</span>
+                </div>
+                <div class="agent-step">
+                    <h4>4️⃣ Prompt 进化优化</h4>
+                    <p>用历史邮件作为 Ground Truth<br>自动变异 prompt → 对比评估 → 保留/丢弃</p>
+                    <span class="agent-badge">Karpathy 模式</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Legend -->
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color layer1"></div>
+                <span class="legend-text">Layer 1: 分类路由 (绿色)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color layer2"></div>
+                <span class="legend-text">Layer 2: 上下文检索 (紫色)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color layer3"></div>
+                <span class="legend-text">Layer 3: 分析生成 (橙色)</span>
+            </div>
+        </div>
+    </body>
+</html>
