@@ -52,13 +52,13 @@ const App: React.FC = () => {
         <div className="max-w-7xl mx-auto px-6 py-5">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-[#60a5fa]">📧 AI Email Agent</h1>
-              <p className="text-sm text-[#94a3b8] mt-1">Pharmaceutical Distribution System</p>
+              <h1 className="text-2xl font-bold text-[#60a5fa]">📧 AI Email Agent · 智能邮件代理</h1>
+              <p className="text-sm text-[#94a3b8] mt-1">医药分销自动化系统 | Pharmaceutical Distribution</p>
             </div>
             <div className="flex items-center gap-4">
               <div className="text-right">
-                <div className="text-xs text-[#64748b]">System Status</div>
-                <div className="text-sm text-[#10b981] font-medium">● All Systems Operational</div>
+                <div className="text-xs text-[#64748b]">系统状态 | System Status</div>
+                <div className="text-sm text-[#10b981] font-medium">● 全部运行正常 | All Systems Operational</div>
               </div>
             </div>
           </div>
@@ -72,19 +72,19 @@ const App: React.FC = () => {
             <TabButton
               active={activeTab === 'inbox'}
               onClick={() => setActiveTab('inbox')}
-              label="📨 Inbox"
+              label="📨 收件箱 | Inbox"
               activeColor="text-[#60a5fa] border-[#60a5fa]"
             />
             <TabButton
               active={activeTab === 'agents'}
               onClick={() => setActiveTab('agents')}
-              label="🤖 Agents"
+              label="🤖 Agent 监控 | Agents"
               activeColor="text-[#f97316] border-[#f97316]"
             />
             <TabButton
               active={activeTab === 'metrics'}
               onClick={() => setActiveTab('metrics')}
-              label="📊 Metrics"
+              label="📊 指标 | Metrics"
               activeColor="text-[#a855f7] border-[#a855f7]"
             />
           </div>
@@ -211,7 +211,7 @@ const EmailList: React.FC<EmailListProps> = ({ selectedEmail, onSelectEmail }) =
     return (
       <div className="bg-gradient-to-br from-[#1e293b] to-[#0f172a] rounded-2xl border border-[#334155] overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.4)]">
         <div className="bg-gradient-to-r from-[#1e293b] to-[#334155] px-5 py-4 border-b border-[#475569]">
-          <h2 className="text-lg font-semibold text-[#e2e8f0]">收件箱 - 未处理邮件</h2>
+          <h2 className="text-lg font-semibold text-[#e2e8f0]">收件箱 - 未处理邮件 | Inbox - Unprocessed Emails</h2>
         </div>
         <div>
           {[1, 2, 3].map((i) => (
@@ -243,11 +243,11 @@ const EmailList: React.FC<EmailListProps> = ({ selectedEmail, onSelectEmail }) =
     return (
       <div className="bg-gradient-to-br from-[#1e293b] to-[#0f172a] rounded-2xl border border-[#334155] overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.4)]">
         <div className="bg-gradient-to-r from-[#1e293b] to-[#334155] px-5 py-4 border-b border-[#475569]">
-          <h2 className="text-lg font-semibold text-[#e2e8f0]">收件箱 - 未处理邮件</h2>
+          <h2 className="text-lg font-semibold text-[#e2e8f0]">收件箱 - 未处理邮件 | Inbox - Unprocessed Emails</h2>
         </div>
         <div className="p-8 text-center">
           <div className="text-2xl mb-2">❌</div>
-          <div className="text-[#ef4444]">加载失败：{error.message}</div>
+          <div className="text-[#ef4444]">加载失败 | Load Failed: {error.message}</div>
         </div>
       </div>
     );
@@ -258,12 +258,12 @@ const EmailList: React.FC<EmailListProps> = ({ selectedEmail, onSelectEmail }) =
     return (
       <div className="bg-gradient-to-br from-[#1e293b] to-[#0f172a] rounded-2xl border border-[#334155] overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.4)]">
         <div className="bg-gradient-to-r from-[#1e293b] to-[#334155] px-5 py-4 border-b border-[#475569]">
-          <h2 className="text-lg font-semibold text-[#e2e8f0]">收件箱 - 未处理邮件</h2>
+          <h2 className="text-lg font-semibold text-[#e2e8f0]">收件箱 - 未处理邮件 | Inbox - Unprocessed Emails</h2>
         </div>
         <div className="p-8 text-center text-[#94a3b8]">
           <div className="text-4xl mb-3">📭</div>
-          <div className="text-lg font-medium">收件箱为空</div>
-          <div className="text-sm mt-1">暂无待处理的邮件</div>
+          <div className="text-lg font-medium">收件箱为空 | Inbox Empty</div>
+          <div className="text-sm mt-1">暂无待处理的邮件 | No pending emails</div>
         </div>
       </div>
     );
@@ -272,7 +272,7 @@ const EmailList: React.FC<EmailListProps> = ({ selectedEmail, onSelectEmail }) =
   return (
     <div className="bg-gradient-to-br from-[#1e293b] to-[#0f172a] rounded-2xl border border-[#334155] overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.4)]">
       <div className="bg-gradient-to-r from-[#1e293b] to-[#334155] px-5 py-4 border-b border-[#475569]">
-        <h2 className="text-lg font-semibold text-[#e2e8f0]">收件箱 - 未处理邮件</h2>
+        <h2 className="text-lg font-semibold text-[#e2e8f0]">收件箱 - 未处理邮件 | Inbox - Unprocessed Emails</h2>
       </div>
       <div>
         {emails.map((email) => (
@@ -362,9 +362,9 @@ const EmptyState: React.FC<EmptyStateProps> = ({ message }) => (
   <div className="bg-gradient-to-br from-[#1e293b] to-[#0f172a] rounded-2xl border border-[#334155] p-8 h-full flex items-center justify-center">
     <div className="text-center text-[#94a3b8]">
       <div className="text-4xl mb-3">👈</div>
-      <div className="text-lg font-medium">{message || '选择一封邮件'}</div>
+      <div className="text-lg font-medium">{message || '选择一封邮件 | Select an email'}</div>
       {!message && (
-        <div className="text-sm mt-1">查看 AI 分析结果和结构化输出</div>
+        <div className="text-sm mt-1">查看 AI 分析结果和结构化输出 | View AI analysis</div>
       )}
     </div>
   </div>
@@ -410,7 +410,7 @@ const ErrorState: React.FC<ErrorStateProps> = ({ message }) => (
   <div className="bg-gradient-to-br from-[#1e293b] to-[#0f172a] rounded-2xl border border-[#334155] p-8 h-full flex items-center justify-center">
     <div className="text-center text-[#ef4444]">
       <div className="text-4xl mb-3">❌</div>
-      <div className="text-lg font-medium">加载失败</div>
+      <div className="text-lg font-medium">加载失败 | Load Failed</div>
       <div className="text-sm mt-1">{message}</div>
     </div>
   </div>
@@ -429,7 +429,7 @@ const AgentsTab: React.FC = () => {
       <div className="space-y-6">
         <div className="text-center text-[#94a3b8] py-12">
           <div className="text-2xl mb-2">⏳</div>
-          <div>加载 Agent 状态...</div>
+          <div>加载 Agent 状态中... | Loading Agent Status...</div>
         </div>
       </div>
     );
@@ -441,7 +441,7 @@ const AgentsTab: React.FC = () => {
       <div className="space-y-6">
         <div className="text-center text-[#ef4444] py-12">
           <div className="text-2xl mb-2">❌</div>
-          <div>加载失败：{error.message}</div>
+          <div>加载失败 | Load Failed: {error.message}</div>
         </div>
       </div>
     );
@@ -453,7 +453,7 @@ const AgentsTab: React.FC = () => {
       <div className="space-y-6">
         <div className="text-center text-[#94a3b8] py-12">
           <div className="text-2xl mb-2">📭</div>
-          <div>暂无 Agent 数据</div>
+          <div>暂无 Agent 数据 | No Agent Data</div>
         </div>
       </div>
     );
@@ -520,7 +520,7 @@ const CEOAgentCard: React.FC<CEOAgentCardProps> = ({
     <div className="bg-[linear-gradient(145deg,rgba(249,115,22,0.1),rgba(15,23,42,0.5))] rounded-2xl border border-[rgba(249,115,22,0.3)] p-6">
       <div className="flex items-center justify-between mb-4">
         <span className="text-lg font-semibold text-[#f97316] flex items-center gap-2">
-          📋 CEO Agent (任务分解器)
+          📋 CEO Agent (任务分解器 | Task Decomposer)
         </span>
         <span className={`text-xs px-3 py-1 rounded-full font-medium ${getStatusColor(status)}`}>
           {status === 'Running' && '● '}
@@ -533,7 +533,7 @@ const CEOAgentCard: React.FC<CEOAgentCardProps> = ({
       {/* Budget Bar */}
       <div className="mb-4">
         <div className="flex justify-between text-sm text-[#94a3b8] mb-2">
-          <span>预算消耗</span>
+          <span>预算消耗 | Budget Used</span>
           <span className="font-mono">${budgetUsed.toFixed(2)} / ${budgetMax.toFixed(2)}</span>
         </div>
         <div className="h-2 bg-[#0f172a] rounded-full overflow-hidden">
@@ -591,7 +591,7 @@ const SubAgentCard: React.FC<SubAgentCardProps> = ({ agent }) => {
         </span>
       </div>
       <div className="flex justify-between text-[10px] text-[#94a3b8] mb-1.5">
-        <span>预算</span>
+        <span>预算 | Budget</span>
         <span className="font-mono">${agent.budget.toFixed(2)}</span>
       </div>
       <div className="h-1.5 bg-[#0f172a] rounded-full overflow-hidden">
@@ -664,11 +664,11 @@ const LayerExecutionLog: React.FC<LayerExecutionLogProps> = ({ traceId }) => {
     return (
       <div className="bg-gradient-to-br from-[#1e293b] to-[#0f172a] rounded-2xl border border-[#334155] overflow-hidden">
         <div className="bg-gradient-to-r from-[#1e293b] to-[#334155] px-5 py-4 border-b border-[#475569]">
-          <h2 className="text-lg font-semibold text-[#e2e8f0]">🔬 邮件 #{traceId} - 完整执行日志</h2>
+          <h2 className="text-lg font-semibold text-[#e2e8f0]">🔬 邮件 #{traceId} - 完整执行日志 | Email #{traceId} - Full Execution Log</h2>
         </div>
         <div className="p-5 text-center text-[#94a3b8]">
           <div className="text-2xl mb-2">⏳</div>
-          <div>加载执行日志...</div>
+          <div>加载执行日志中... | Loading Execution Log...</div>
         </div>
       </div>
     );
@@ -679,11 +679,11 @@ const LayerExecutionLog: React.FC<LayerExecutionLogProps> = ({ traceId }) => {
     return (
       <div className="bg-gradient-to-br from-[#1e293b] to-[#0f172a] rounded-2xl border border-[#334155] overflow-hidden">
         <div className="bg-gradient-to-r from-[#1e293b] to-[#334155] px-5 py-4 border-b border-[#475569]">
-          <h2 className="text-lg font-semibold text-[#e2e8f0]">🔬 邮件 #{traceId} - 完整执行日志</h2>
+          <h2 className="text-lg font-semibold text-[#e2e8f0]">🔬 邮件 #{traceId} - 完整执行日志 | Email #{traceId} - Full Execution Log</h2>
         </div>
         <div className="p-5 text-center text-[#ef4444]">
           <div className="text-2xl mb-2">❌</div>
-          <div>加载失败：{error.message}</div>
+          <div>加载失败 | Load Failed: {error.message}</div>
         </div>
       </div>
     );
@@ -694,11 +694,11 @@ const LayerExecutionLog: React.FC<LayerExecutionLogProps> = ({ traceId }) => {
     return (
       <div className="bg-gradient-to-br from-[#1e293b] to-[#0f172a] rounded-2xl border border-[#334155] overflow-hidden">
         <div className="bg-gradient-to-r from-[#1e293b] to-[#334155] px-5 py-4 border-b border-[#475569]">
-          <h2 className="text-lg font-semibold text-[#e2e8f0]">🔬 邮件 #{traceId} - 完整执行日志</h2>
+          <h2 className="text-lg font-semibold text-[#e2e8f0]">🔬 邮件 #{traceId} - 完整执行日志 | Email #{traceId} - Full Execution Log</h2>
         </div>
         <div className="p-5 text-center text-[#94a3b8]">
           <div className="text-2xl mb-2">📭</div>
-          <div>暂无执行日志</div>
+          <div>暂无执行日志 | No Execution Log</div>
         </div>
       </div>
     );
@@ -709,7 +709,7 @@ const LayerExecutionLog: React.FC<LayerExecutionLogProps> = ({ traceId }) => {
   return (
     <div className="bg-gradient-to-br from-[#1e293b] to-[#0f172a] rounded-2xl border border-[#334155] overflow-hidden">
       <div className="bg-gradient-to-r from-[#1e293b] to-[#334155] px-5 py-4 border-b border-[#475569]">
-        <h2 className="text-lg font-semibold text-[#e2e8f0]">🔬 邮件 #{traceId} - 完整执行日志</h2>
+        <h2 className="text-lg font-semibold text-[#e2e8f0]">🔬 邮件 #{traceId} - 完整执行日志 | Email #{traceId} - Full Execution Log</h2>
       </div>
       <div className="p-5">
         <div className="space-y-3">
@@ -749,7 +749,7 @@ const MetricsTab: React.FC = () => {
       <div className="space-y-6">
         <div className="text-center text-[#94a3b8] py-12">
           <div className="text-2xl mb-2">⏳</div>
-          <div>加载中...</div>
+          <div>加载中 | Loading...</div>
         </div>
       </div>
     );
@@ -760,7 +760,7 @@ const MetricsTab: React.FC = () => {
       <div className="space-y-6">
         <div className="text-center text-[#ef4444] py-12">
           <div className="text-2xl mb-2">❌</div>
-          <div>加载失败：{(metricsError || tracesError || versionsError)?.message}</div>
+          <div>加载失败 | Load Failed: {(metricsError || tracesError || versionsError)?.message}</div>
         </div>
       </div>
     );
@@ -865,7 +865,7 @@ const TraceTimeline: React.FC<TraceTimelineProps> = ({ spans }) => {
           <h2 className="text-lg font-semibold text-[#e2e8f0]">🔗 分布式追踪 (Trace)</h2>
         </div>
         <div className="p-5 text-center text-[#94a3b8]">
-          <div>暂无追踪数据</div>
+          <div>暂无追踪数据 | No Trace Data</div>
         </div>
       </div>
     );
@@ -913,7 +913,7 @@ const PromptEvolution: React.FC<PromptEvolutionProps> = ({ versions }) => {
           <h2 className="text-lg font-semibold text-[#e2e8f0]">🧬 Prompt 进化历史 (Autoresearch)</h2>
         </div>
         <div className="p-5 text-center text-[#94a3b8]">
-          <div>暂无 Prompt 版本</div>
+          <div>暂无 Prompt 版本 | No Prompt Versions</div>
         </div>
       </div>
     );
