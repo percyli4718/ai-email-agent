@@ -1,8 +1,58 @@
+"""
+Layer 3: 提示词模板模块
+
+模块作用:
+    本模块定义报价生成器使用的提示词模板和类型定义。
+    包含报价结果的数据结构 (QuoteItem, QuoteResult) 和用于调用 LLM 的报价生成提示词模板。
+
+使用场景:
+    - generator.py 导入 QUOTE_GENERATION_PROMPT 用于报价生成
+    - 定义报价结果的结构化 Schema
+    - 调整提示词模板以优化报价质量
+
+在项目中的位置:
+    位于 src/email_agent/layer3/prompts.py，
+    是 Layer 3 生成器模块的组成部分，
+    为 generator.py 提供提示词模板和类型定义。
+"""
 from typing import TypedDict, List
 
 
 class QuoteItem(TypedDict):
-    """Schema for a quote line item."""
+    """
+    报价单行项目的数据结构
+
+    作用:
+        定义报价单中每个产品行项目的 Schema。
+        使用 TypedDict 提供类型检查。
+
+    字段说明:
+        product_name: str 类型，产品名称
+            例如："Paracetamol 500mg"
+
+        product_code: str 类型，产品代码
+            企业内部产品编码或 SKU
+
+        quantity: int 类型，数量
+            订购的产品数量
+
+        unit_price: float 类型，单价
+            每单位产品的价格 (USD)
+
+        currency: str 类型，货币
+            固定为 "USD"
+
+        incoterm: str 类型，国际贸易术语
+            - FOB: Free On Board (船上交货)
+            - CIF: Cost, Insurance and Freight (成本加保险费加运费)
+
+        lead_time_days: int 类型，交货周期
+            从订单确认到交货的天数
+
+    使用场景:
+        - 作为 QuoteResult.items 列表的元素类型
+        - 确保报价项目数据结构的一致性
+    """
     product_name: str
     product_code: str
     quantity: int
@@ -13,7 +63,43 @@ class QuoteItem(TypedDict):
 
 
 class QuoteResult(TypedDict, total=False):
-    """Schema for generated quote."""
+    """
+    报价结果的数据结构
+
+    作用:
+        定义完整报价单的 Schema，使用 TypedDict 提供类型检查。
+        total=False 表示所有字段都是可选的，便于部分更新。
+
+    字段说明:
+        quote_id: str 类型，报价单唯一标识符
+            通常使用 UUID 格式
+
+        customer_email: str 类型，客户邮箱地址
+            报价接收方的邮箱
+
+        items: List[QuoteItem] 类型，报价项目列表
+            包含一个或多个产品行项目
+
+        total_amount: float 类型，总金额
+            所有项目的合计金额 (USD)
+
+        valid_until: str 类型，报价有效期
+            格式：YYYY-MM-DD
+
+        shipping_port: str 类型，发货港口
+            例如："Shanghai, China"
+
+        payment_terms: str 类型，付款条款
+            例如："30% advance, 70% against B/L"
+
+        notes: str 类型，备注
+            附加说明或特殊条款
+
+    使用场景:
+        - 作为 generate_quote() 函数的返回值类型
+        - 确保报价结果数据结构的一致性
+        - IDE 和类型检查工具提供代码补全
+    """
     quote_id: str
     customer_email: str
     items: List[QuoteItem]
@@ -24,6 +110,8 @@ class QuoteResult(TypedDict, total=False):
     notes: str
 
 
+# 报价生成提示词模板
+# 用于指导 Claude 模型生成结构化报价
 QUOTE_GENERATION_PROMPT = """
 You are a pharmaceutical pricing expert generating a formal quote.
 
@@ -56,7 +144,7 @@ Output a JSON object with this exact schema:
       "unit_price": <price per unit in USD>,
       "currency": "USD",
       "incoterm": "FOB|CIF",
-      "lead_time_days": <days to delivery>
+      "lead_time_days": "<days to delivery>"
     }}
   ],
   "total_amount": <total USD amount>,
