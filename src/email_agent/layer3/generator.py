@@ -1,14 +1,15 @@
 import json
 import uuid
-from typing import Any, Dict
-
-import anthropic
+from typing import TYPE_CHECKING, Any, Dict
 
 from email_agent.config import Settings
 from email_agent.layer3.prompts import QUOTE_GENERATION_PROMPT, QuoteResult
 from email_agent.layer3.router import ModelChoice, ModelRouter
 from email_agent.logging_config import get_logger
 from email_agent.observability.budget_tracker import BudgetTracker
+
+if TYPE_CHECKING:
+    import anthropic
 
 logger = get_logger(__name__)
 
@@ -18,9 +19,17 @@ class QuoteGenerator:
 
     def __init__(self, settings: Settings):
         self.settings = settings
-        self.client = anthropic.AsyncClient(api_key=settings.anthropic_api_key)
+        self._client = None
         self.router = ModelRouter()
         self.budget_tracker = BudgetTracker(settings)
+
+    @property
+    def client(self) -> "anthropic.AsyncClient":
+        """Lazy initialization of Anthropic client to avoid proxy issues."""
+        if self._client is None:
+            import anthropic
+            self._client = anthropic.AsyncClient(api_key=self.settings.anthropic_api_key)
+        return self._client
 
     async def generate_quote(
         self,

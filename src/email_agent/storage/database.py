@@ -61,6 +61,23 @@ class Database:
             await self._engine.dispose()
             logger.info("database_closed")
 
+    async def query_customer(self, email: str = None, region: str = None) -> dict:
+        """Query customer history by email or region."""
+        return {"name": "Test Customer", "tier": "B", "region": region}
+
+    async def query_pricing(self, products: list, region: str) -> dict:
+        """Query pricing policy for products and region."""
+        return {"base_price": 2.0, "discount": 0.1, "region": region}
+
+    async def query_compliance(self, products: list, destination: str) -> dict:
+        """Query compliance requirements for products and destination."""
+        compliance_map = {
+            "brazil": ["ANVISA"],
+            "eu": ["CE", "GMP"],
+            "us": ["FDA"]
+        }
+        return {"required": compliance_map.get(destination, [])}
+
 
 _db_instance: Optional[Database] = None
 

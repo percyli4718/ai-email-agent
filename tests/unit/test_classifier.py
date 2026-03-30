@@ -1,3 +1,4 @@
+import json
 import pytest
 from unittest.mock import AsyncMock, patch
 
@@ -23,7 +24,7 @@ async def test_classifier_parses_response():
     with patch('email_agent.layer1.classifier.create_client') as mock_create:
         mock_client = AsyncMock()
         mock_client.messages.create = AsyncMock(
-            return_value=AsyncMock(content=[AsyncMock(text=str(mock_response))])
+            return_value=AsyncMock(content=[AsyncMock(text=json.dumps(mock_response))])
         )
         mock_create.return_value = mock_client
 

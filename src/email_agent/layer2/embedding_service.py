@@ -1,10 +1,10 @@
-from typing import List
-
-import ollama
-from ollama import Client
+from typing import TYPE_CHECKING, List
 
 from email_agent.config import Settings
 from email_agent.logging_config import get_logger
+
+if TYPE_CHECKING:
+    from ollama import Client
 
 logger = get_logger(__name__)
 
@@ -14,8 +14,16 @@ class EmbeddingService:
 
     def __init__(self, settings: Settings):
         self.settings = settings
-        self.client = Client(host=f"http://{settings.ollama_host}")
+        self._client = None
         self.model = "mxb3embed-base"
+
+    @property
+    def client(self) -> "Client":
+        """Lazy initialization of ollama client to avoid proxy issues."""
+        if self._client is None:
+            import ollama
+            self._client = ollama.Client(host=f"http://{self.settings.ollama_host}")
+        return self._client
 
     async def generate_embedding(self, text: str) -> List[float]:
         """Generate embedding for a single text."""

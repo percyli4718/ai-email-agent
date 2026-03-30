@@ -107,5 +107,5 @@ tracer = Tracer()
 @contextmanager
 def trace_span(name: str, tags: Optional[Dict] = None):
     """Convenience function to create a span."""
-    with tracer.span(name, tags):
-        yield
+    with tracer.span(name, tags) as span:
+        yield span

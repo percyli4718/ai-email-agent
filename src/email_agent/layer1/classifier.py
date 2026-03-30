@@ -1,17 +1,19 @@
 import json
-from typing import Any
-
-import anthropic
+from typing import TYPE_CHECKING, Any
 
 from email_agent.config import Settings
 from email_agent.layer1.prompts import CLASSIFIER_PROMPT, EmailClassification
 from email_agent.logging_config import get_logger
 
+if TYPE_CHECKING:
+    import anthropic
+
 logger = get_logger(__name__)
 
 
-def create_client(api_key: str) -> anthropic.AsyncClient:
+def create_client(api_key: str) -> "anthropic.AsyncClient":
     """Create Anthropic client instance."""
+    import anthropic
     return anthropic.AsyncClient(api_key=api_key)
 
 
@@ -20,7 +22,14 @@ class EmailClassifier:
 
     def __init__(self, settings: Settings):
         self.settings = settings
-        self.client = create_client(settings.anthropic_api_key)
+        self._client = None
+
+    @property
+    def client(self) -> "anthropic.AsyncClient":
+        """Lazy initialization of Anthropic client to avoid proxy issues."""
+        if self._client is None:
+            self._client = create_client(self.settings.anthropic_api_key)
+        return self._client
 
     async def classify(
         self,

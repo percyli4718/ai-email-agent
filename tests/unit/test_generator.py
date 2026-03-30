@@ -1,3 +1,4 @@
+import json
 import pytest
 from unittest.mock import AsyncMock, patch
 
@@ -28,7 +29,7 @@ async def test_generator_creates_quote():
     }
 
     with patch.object(generator, '_call_llm') as mock_llm:
-        mock_llm.return_value = str(mock_response)
+        mock_llm.return_value = json.dumps(mock_response)
 
         result = await generator.generate_quote(
             original_email="We want to order Paracetamol",
