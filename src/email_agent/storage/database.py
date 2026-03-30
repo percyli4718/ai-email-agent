@@ -18,6 +18,7 @@
 """
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator, Optional
+from datetime import datetime
 
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
@@ -25,9 +26,11 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
     AsyncEngine
 )
+from sqlalchemy import select
 
 from email_agent.config import Settings
 from email_agent.logging_config import get_logger
+from email_agent.storage.models import Customer, PricingPolicy, ComplianceRequirement
 
 # 获取当前模块的日志记录器
 logger = get_logger(__name__)
@@ -183,6 +186,34 @@ class Database:
                 # 重新抛出异常
                 raise
 
+    async def init_tables(self) -> None:
+        """
+        初始化数据库表
+
+        功能描述:
+            创建所有模型对应的数据库表。
+            在应用启动时调用。
+
+        参数:
+            无
+
+        返回值:
+            无
+
+        异常:
+            无
+
+        使用示例:
+            db = get_database(settings)
+            await db.init_tables()
+        """
+        from email_agent.storage.models import Base
+
+        async with self.engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+
+        logger.info("database_tables_initialized")
+
     async def close(self) -> None:
         """
         关闭数据库连接
@@ -211,7 +242,7 @@ class Database:
 
         功能描述:
             根据邮箱或区域查询客户信息。
-            当前返回模拟数据，后续将对接真实数据库。
+            使用 SQLAlchemy 异步查询 Customer 表。
 
         参数:
             email: Optional[str] 类型，客户邮箱 (可选)
@@ -226,40 +257,277 @@ class Database:
         异常:
             无
 
-        TODO:
-            实现真实的数据库查询逻辑
+        使用示例:
+            async with db.session() as session:
+                customer = await db.query_customer(session, email="test@example.com")
         """
-        # 返回模拟数据
-        return {"name": "Test Customer", "tier": "B", "region": region}
+        async with self.session() as session:
+            # 构建查询
+            stmt = select(Customer)
+            if email:
+                stmt = stmt.where(Customer.email == email)
+            if region:
+                stmt = stmt.where(Customer.region == region)
 
-    async def query_pricing(self, products: list, region: str) -> dict:
+            result = await session.execute(stmt)
+            customer = result.scalars().first()
+
+            if customer:
+                return {
+                    "id": customer.id,
+                    "name": customer.name,
+                    "email": customer.email,
+                    "tier": customer.tier,
+                    "region": customer.region
+                }
+
+            # 如果没有找到客户，返回 None
+            return None
+
+    async def create_customer(
+        self,
+        name: str,
+        email: str,
+        tier: str = "C",
+        region: str = None
+    ) -> Customer:
+        """
+        创建客户记录
+
+        功能描述:
+            创建新的客户记录。如果邮箱已存在则返回现有客户。
+
+        参数:
+            name: str 类型，客户名称
+            email: str 类型，客户邮箱
+            tier: str 类型，客户等级 (A/B/C)
+            region: str 类型，客户区域
+
+        返回值:
+            Customer: 创建或查询到的客户对象
+
+        异常:
+            SQLAlchemy 异常
+
+        使用示例:
+            customer = await db.create_customer(
+                name="John Smith",
+                email="john@example.com",
+                tier="A",
+                region="Europe"
+            )
+        """
+        from email_agent.storage.models import Customer
+        from sqlalchemy import select
+
+        async with self.session() as session:
+            # 先查询是否已存在
+            stmt = select(Customer).where(Customer.email == email)
+            result = await session.execute(stmt)
+            existing = result.scalars().first()
+
+            if existing:
+                return existing
+
+            # 创建新客户
+            customer = Customer(
+                name=name,
+                email=email,
+                tier=tier,
+                region=region
+            )
+            session.add(customer)
+            await session.flush()  # 获取自增 ID
+            logger.info("customer_created", email=email, tier=tier)
+            return customer
+
+    async def save_email_analysis(
+        self,
+        email_id: str,
+        layer1_classification: dict = None,
+        layer2_retrieval: dict = None,
+        layer3_output: dict = None,
+        processing_time_ms: float = None,
+        cost: float = None,
+        model_used: str = None
+    ) -> None:
+        """
+        保存邮件分析结果
+
+        功能描述:
+            保存 Layer 1/2/3 的完整分析结果到数据库。
+
+        参数:
+            email_id: str 类型，邮件 ID
+            layer1_classification: dict 类型，Layer 1 分类结果
+            layer2_retrieval: dict 类型，Layer 2 检索结果
+            layer3_output: dict 类型，Layer 3 生成结果
+            processing_time_ms: float 类型，处理耗时 (毫秒)
+            cost: float 类型，AI 调用成本 (美元)
+            model_used: str 类型，使用的模型名称
+
+        返回值:
+            无
+
+        异常:
+            SQLAlchemy 异常
+
+        使用示例:
+            await db.save_email_analysis(
+                email_id="email_001",
+                layer1_classification={"type": "inquiry", "priority_score": 0.85},
+                layer2_retrieval={"query": "...", "results": [...]},
+                layer3_output={"quote_id": "QT-001", "total_amount": 5000},
+                processing_time_ms=1234.5,
+                cost=0.05,
+                model_used="claude-sonnet-4"
+            )
+        """
+        from email_agent.storage.models import EmailAnalysis
+
+        async with self.session() as session:
+            analysis = EmailAnalysis(
+                email_id=email_id,
+                layer1_classification=layer1_classification,
+                layer2_retrieval=layer2_retrieval,
+                layer3_output=layer3_output,
+                processing_time_ms=processing_time_ms,
+                cost=cost,
+                model_used=model_used
+            )
+            session.add(analysis)
+            logger.info("email_analysis_saved", email_id=email_id, cost=cost)
+
+    async def save_agent_execution(
+        self,
+        task_id: str,
+        agent_name: str,
+        email_id: str = None,
+        status: str = "pending",
+        budget_allocated: float = None,
+        actual_cost: float = None,
+        input_data: dict = None,
+        output_data: dict = None,
+        error_message: str = None,
+        started_at: datetime = None,
+        completed_at: datetime = None
+    ) -> None:
+        """
+        保存 Agent 执行记录
+
+        功能描述:
+            保存子 Agent 的执行日志到数据库。
+
+        参数:
+            task_id: str 类型，任务 ID
+            agent_name: str 类型，Agent 名称
+            email_id: str 类型，关联邮件 ID
+            status: str 类型，执行状态
+            budget_allocated: float 类型，分配预算
+            actual_cost: float 类型，实际成本
+            input_data: dict 类型，输入数据
+            output_data: dict 类型，输出数据
+            error_message: str 类型，错误信息
+            started_at: datetime 类型，开始时间
+            completed_at: datetime 类型，完成时间
+
+        返回值:
+            无
+
+        异常:
+            SQLAlchemy 异常
+
+        使用示例:
+            await db.save_agent_execution(
+                task_id="task_001",
+                agent_name="price_agent",
+                email_id="email_001",
+                status="completed",
+                budget_allocated=0.10,
+                actual_cost=0.08,
+                output_data={"quote": {...}},
+                started_at=datetime.utcnow()
+            )
+        """
+        from email_agent.storage.models import AgentExecution
+
+        async with self.session() as session:
+            execution = AgentExecution(
+                task_id=task_id,
+                agent_name=agent_name,
+                email_id=email_id,
+                status=status,
+                budget_allocated=budget_allocated,
+                actual_cost=actual_cost,
+                input_data=input_data,
+                output_data=output_data,
+                error_message=error_message,
+                started_at=started_at,
+                completed_at=completed_at
+            )
+            session.add(execution)
+            logger.info("agent_execution_saved", task_id=task_id, agent=agent_name, status=status)
+
+    async def query_pricing_policy(self, products: list, region: str) -> dict:
         """
         查询产品定价政策
 
         功能描述:
             根据产品列表和区域查询适用定价。
-            当前返回模拟数据，后续将对接真实数据库。
+            优先查询特定区域价格，若无则返回默认价格。
 
         参数:
             products: list 类型，产品名称列表
             region: str 类型，客户区域
 
         返回值:
-            dict: 定价政策字典
-                - base_price: 基础价格
-                - discount: 折扣率
-                - region: 适用区域
+            dict: {
+                "policies": [{"product": str, "base_price": float, "discount_rate": float, "currency": str}],
+                "region": str
+            }
 
         异常:
             无
-
-        TODO:
-            实现真实的数据库查询逻辑
         """
-        # 返回模拟数据
-        return {"base_price": 2.0, "discount": 0.1, "region": region}
+        from sqlalchemy import select
 
-    async def query_compliance(self, products: list, destination: str) -> dict:
+        async with self.session() as session:
+            policies = []
+            for product in products:
+                # 先查询特定区域价格
+                stmt = select(PricingPolicy).where(
+                    PricingPolicy.product_name == product,
+                    PricingPolicy.region == region
+                )
+                result = await session.execute(stmt)
+                policy = result.scalars().first()
+
+                if policy:
+                    policies.append({
+                        "product": policy.product_name,
+                        "base_price": policy.base_price,
+                        "discount_rate": policy.discount_rate,
+                        "currency": policy.currency
+                    })
+                else:
+                    # 如果没有找到特定区域价格，查找默认价格
+                    stmt = select(PricingPolicy).where(
+                        PricingPolicy.product_name == product,
+                        PricingPolicy.region == "default"
+                    )
+                    result = await session.execute(stmt)
+                    policy = result.scalars().first()
+                    if policy:
+                        policies.append({
+                            "product": policy.product_name,
+                            "base_price": policy.base_price,
+                            "discount_rate": policy.discount_rate,
+                            "currency": policy.currency
+                        })
+
+            return {"policies": policies, "region": region}
+
+    async def query_compliance_requirements(self, products: list, destination: str) -> dict:
         """
         查询合规要求
 
@@ -272,28 +540,181 @@ class Database:
             destination: str 类型，目的地国家/区域
 
         返回值:
-            dict: 合规要求字典
-                - required: 必需认证列表
+            dict: {
+                "requirements": [{"type": str, "name": str, "mandatory": bool, "description": str}],
+                "region": str
+            }
 
         异常:
             无
 
         合规示例:
-            - brazil: ANVISA 认证
-            - eu: CE 认证，GMP 合规
-            - us: FDA 认证
-
-        TODO:
-            实现真实的数据库查询逻辑
+            - Brazil: ANVISA 认证
+            - EU: CE 认证，GMP 合规
+            - US: FDA 认证
         """
-        # 定义区域到认证要求的映射
-        compliance_map = {
-            "brazil": ["ANVISA"],
-            "eu": ["CE", "GMP"],
-            "us": ["FDA"]
-        }
-        # 返回对应区域的合规要求，如果没有则返回空列表
-        return {"required": compliance_map.get(destination, [])}
+        from sqlalchemy import select
+
+        async with self.session() as session:
+            # 查询该区域的通用合规要求
+            stmt = select(ComplianceRequirement).where(
+                ComplianceRequirement.region == destination
+            )
+            result = await session.execute(stmt)
+            requirements = result.scalars().all()
+
+            return {
+                "requirements": [
+                    {
+                        "type": req.requirement_type,
+                        "name": req.requirement_name,
+                        "mandatory": req.mandatory,
+                        "description": req.description
+                    }
+                    for req in requirements
+                ],
+                "region": destination
+            }
+
+    async def get_all_emails(self, limit: int = 50) -> list:
+        """
+        获取所有邮件列表
+
+        功能描述:
+            查询数据库中的所有邮件，按接收时间倒序排列。
+
+        参数:
+            limit: int 类型，返回数量上限，默认 50
+
+        返回值:
+            list: 邮件列表
+        """
+        from email_agent.storage.models import Email
+
+        async with self.session() as session:
+            stmt = select(Email).order_by(Email.received_at.desc()).limit(limit)
+            result = await session.execute(stmt)
+            emails = result.scalars().all()
+
+            return [
+                {
+                    "id": email.id,
+                    "from_address": email.from_address,
+                    "subject": email.subject,
+                    "preview": email.body[:100] + "..." if email.body else "",
+                    "priority": email.priority,
+                    "status": email.status,
+                    "received_at": email.received_at.isoformat() if email.received_at else None,
+                    "region": email.region,
+                }
+                for email in emails
+            ]
+
+    async def get_email_by_id(self, email_id: str) -> dict:
+        """
+        根据 ID 获取邮件详情
+
+        功能描述:
+            查询单封邮件的完整信息。
+
+        参数:
+            email_id: str 类型，邮件 ID
+
+        返回值:
+            dict: 邮件信息字典，不存在则返回 None
+        """
+        from email_agent.storage.models import Email
+
+        async with self.session() as session:
+            stmt = select(Email).where(Email.id == email_id)
+            result = await session.execute(stmt)
+            email = result.scalars().first()
+
+            if email:
+                return {
+                    "id": email.id,
+                    "from_address": email.from_address,
+                    "subject": email.subject,
+                    "body": email.body,
+                    "priority": email.priority,
+                    "status": email.status,
+                    "received_at": email.received_at.isoformat() if email.received_at else None,
+                    "region": email.region,
+                }
+            return None
+
+    async def get_email_analysis(self, email_id: str) -> dict:
+        """
+        获取邮件分析结果
+
+        功能描述:
+            查询指定邮件的完整分析结果（Layer 1/2/3）。
+
+        参数:
+            email_id: str 类型，邮件 ID
+
+        返回值:
+            dict: 分析结果字典，不存在则返回 None
+        """
+        from email_agent.storage.models import EmailAnalysis
+
+        async with self.session() as session:
+            stmt = select(EmailAnalysis).where(EmailAnalysis.email_id == email_id)
+            result = await session.execute(stmt)
+            analysis = result.scalars().first()
+
+            if analysis:
+                return {
+                    "id": analysis.id,
+                    "email_id": analysis.email_id,
+                    "layer1_classification": analysis.layer1_classification,
+                    "layer2_retrieval": analysis.layer2_retrieval,
+                    "layer3_output": analysis.layer3_output,
+                    "processing_time_ms": analysis.processing_time_ms,
+                    "cost": analysis.cost,
+                    "model_used": analysis.model_used,
+                    "created_at": analysis.created_at.isoformat() if analysis.created_at else None
+                }
+            return None
+
+    async def get_agent_executions(self, email_id: str = None) -> list:
+        """
+        获取 Agent 执行记录
+
+        功能描述:
+            查询 Agent 执行历史，可按邮件 ID 过滤。
+
+        参数:
+            email_id: Optional[str] 类型，邮件 ID 过滤条件（可选）
+
+        返回值:
+            list: Agent 执行记录列表
+        """
+        from email_agent.storage.models import AgentExecution
+
+        async with self.session() as session:
+            stmt = select(AgentExecution)
+            if email_id:
+                stmt = stmt.where(AgentExecution.email_id == email_id)
+            stmt = stmt.order_by(AgentExecution.started_at.desc())
+
+            result = await session.execute(stmt)
+            executions = result.scalars().all()
+
+            return [
+                {
+                    "id": ex.id,
+                    "task_id": ex.task_id,
+                    "agent_name": ex.agent_name,
+                    "status": ex.status,
+                    "budget_allocated": ex.budget_allocated,
+                    "actual_cost": ex.actual_cost,
+                    "started_at": ex.started_at.isoformat() if ex.started_at else None,
+                    "completed_at": ex.completed_at.isoformat() if ex.completed_at else None,
+                    "email_id": ex.email_id
+                }
+                for ex in executions
+            ]
 
 
 # 全局数据库实例 (延迟初始化)
