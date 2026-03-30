@@ -229,9 +229,8 @@ class ContextRetriever:
 
         返回值:
             dict: 定价政策信息，包含:
-                - base_price: 基础价格
-                - discount: 折扣率
-                - region: 适用区域
+                - policies: [{product: str, base_price: float, discount_rate: float, currency: str}]
+                - region: str
 
         异常:
             无
@@ -241,7 +240,7 @@ class ContextRetriever:
             - 应用区域特定的定价策略
         """
         # 调用数据库查询定价政策
-        return await self.db.query_pricing(
+        return await self.db.query_pricing_policy(
             products=products,
             region=region
         )
@@ -260,7 +259,8 @@ class ContextRetriever:
 
         返回值:
             dict: 合规要求信息，包含:
-                - required: 必需的认证/许可列表
+                - requirements: [{type: str, name: str, mandatory: bool, description: str}]
+                - region: str
 
         异常:
             无
@@ -275,7 +275,7 @@ class ContextRetriever:
             - US: FDA 认证
         """
         # 调用数据库查询合规要求
-        return await self.db.query_compliance(
+        return await self.db.query_compliance_requirements(
             products=products,
             destination=region
         )
