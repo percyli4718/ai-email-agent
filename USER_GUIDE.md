@@ -226,10 +226,33 @@ INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
 
 ```bash
 cd frontend
+
+# 1. 安装依赖 (首次运行)
+npm install
+
+# 2. 启动开发服务器
 npm run dev
 ```
 
 **访问地址**: http://localhost:5173
+
+**前端配置说明**:
+- Vite 5.x + React 18 + TypeScript
+- Tailwind CSS 深色主题
+- 已配置 API 代理到后端 (http://localhost:8000)
+
+**前端常用命令**:
+
+| 命令 | 说明 |
+|------|------|
+| `npm run dev` | 启动开发服务器 (热重载) |
+| `npm run build` | 构建生产版本 |
+| `npm run preview` | 预览生产构建 |
+
+**注意事项**:
+1. 启动前端前，确保后端已在 8000 端口运行
+2. 前端通过代理 `/api` 请求到后端，无需配置 CORS
+3. 如遇端口冲突，修改 `vite.config.ts` 中的 `port: 5173`
 
 ---
 
@@ -380,6 +403,14 @@ node --version  # 需要 18+
 npm --version
 ```
 
+**Q: 前端依赖安装慢**
+
+A: 使用国内镜像:
+```bash
+npm config set registry https://registry.npmmirror.com
+npm install
+```
+
 ### 8.2 测试问题
 
 **Q: 测试失败，提示 ModuleNotFoundError**
@@ -410,7 +441,31 @@ python -m uvicorn src.email_agent.main:app --port 8001
 
 A: 检查 CORS 配置，确保后端允许前端端口访问。
 
-### 8.4 获取更多帮助
+### 8.4 前后端联调
+
+**Q: 前端无法连接后端 API**
+
+A: 检查以下配置:
+```bash
+# 1. 确认后端已启动
+curl http://localhost:8000/health
+
+# 2. 检查 Vite 代理配置 (frontend/vite.config.ts)
+# 确保 proxy 指向正确的后端地址
+
+# 3. 前端开发时，浏览器访问 http://localhost:5173
+# 不要直接访问后端端口
+```
+
+**Q: 前端构建后 API 路径错误**
+
+A: 生产环境需要配置 API base URL:
+```bash
+# .env.production
+VITE_API_BASE_URL=https://your-api-domain.com
+```
+
+### 8.5 获取更多帮助
 
 ```bash
 # 查看项目 README
@@ -421,6 +476,9 @@ cat docs/superpowers/specs/ai-email-agent-design.md
 
 # 查看开发 SOP
 cat docs/superpowers/SOP-ai-email-agent-development.md
+
+# 查看用户手册
+cat USER_GUIDE.md
 ```
 
 ---
