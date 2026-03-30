@@ -296,3 +296,313 @@ class TraceResponse(BaseModel):
 # 重建模型以支持递归引用
 # Pydantic v2 需要在定义递归模型后调用 model_rebuild()
 TraceResponse.model_rebuild()
+
+
+# ==================== 新增 Schema：用于 AI Email Agent 数据端点 ====================
+
+
+class EmailListResponse(BaseModel):
+    """
+    邮件列表响应 Schema
+
+    作用:
+        定义 GET /api/emails 响应的数据结构。
+
+    字段说明:
+        emails: List[Dict] 类型，邮件列表
+            邮件列表，每项包含:
+            - id: 邮件 ID
+            - from_address: 发件人地址
+            - subject: 主题
+            - preview: 预览内容
+            - priority: 优先级
+            - status: 处理状态
+            - received_at: 接收时间 (ISO 8601 格式)
+            - region: 客户区域
+
+        total: int 类型，总数
+            邮件总数
+
+    使用场景:
+        - 作为邮件列表 API 的响应模型
+        - 前端展示邮件列表
+    """
+    emails: List[Dict]
+    total: int
+
+
+class Layer1Analysis(BaseModel):
+    """
+    Layer 1 分类结果 Schema
+
+    作用:
+        定义邮件分类分析结果的数据结构。
+
+    字段说明:
+        type: str 类型，邮件类型
+            inquiry/complaint/status_check/other
+
+        priority_score: float 类型，优先级分数
+            0.0-1.0 的优先级评分
+
+        urgency: str 类型，紧急程度
+            low/medium/high
+
+        language: str 类型，语言代码
+            en/pt/es/fr/de/zh/ar
+
+        products_mentioned: List[str] 类型，提及产品列表
+            邮件中提及的产品名称列表
+
+        customer_region: str 类型，客户区域
+            客户所在的国家/地区
+
+        requires_human: bool 类型，是否需要人工处理
+            True 表示需要人工介入
+
+        suggested_route: str 类型，建议路由
+            quote_flow/complaint_flow/status_flow/general_flow
+
+    使用场景:
+        - 作为邮件分析 API 的 Layer 1 响应
+        - 前端展示分类结果
+    """
+    type: str
+    priority_score: float
+    urgency: str
+    language: str
+    products_mentioned: List[str]
+    customer_region: str
+    requires_human: bool
+    suggested_route: str
+
+
+class Layer2Retrieval(BaseModel):
+    """
+    Layer 2 检索结果 Schema
+
+    作用:
+        定义向量检索结果的数据结构。
+
+    字段说明:
+        query: str 类型，检索查询
+            用于检索的查询文本
+
+        results: List[Dict] 类型，检索结果列表
+            每个结果包含文档内容和相似度分数
+
+        retrieval_time_ms: float 类型，检索耗时
+            检索操作的执行时间 (毫秒)
+
+    使用场景:
+        - 作为邮件分析 API 的 Layer 2 响应
+        - 前端展示检索结果
+    """
+    query: str
+    results: List[Dict]
+    retrieval_time_ms: float
+
+
+class Layer3StructuredOutput(BaseModel):
+    """
+    Layer 3 结构化输出 Schema
+
+    作用:
+        定义结构化输出结果的数据结构。
+
+    字段说明:
+        quote_id: str 类型，报价单 ID
+            报价单的唯一标识符
+
+        items: List[Dict] 类型，报价项目列表
+            包含产品、数量、单价等信息
+
+        total_amount: float 类型，总金额
+            报价的总金额 (USD)
+
+        valid_until: str 类型，有效期至
+            报价的截止日期 (YYYY-MM-DD)
+
+        shipping_port: str 类型，发货港口
+            货物出发港口
+
+        payment_terms: str 类型，付款条款
+            例如："30% advance, 70% against B/L"
+
+    使用场景:
+        - 作为邮件分析 API 的 Layer 3 响应
+        - 前端展示报价详情
+    """
+    quote_id: str
+    items: List[Dict]
+    total_amount: float
+    valid_until: str
+    shipping_port: str
+    payment_terms: str
+
+
+class EmailAnalysisResponse(BaseModel):
+    """
+    邮件分析响应 Schema
+
+    作用:
+        定义 GET /api/emails/{id}/analysis 响应的数据结构。
+        包含 Layer 1/2/3 的完整分析结果。
+
+    字段说明:
+        email_id: str 类型，邮件 ID
+            被分析的邮件 ID
+
+        layer1_classification: Layer1Analysis 类型，Layer 1 分类结果
+            邮件分类和路由建议
+
+        layer2_retrieval: Optional[Layer2Retrieval] 类型，Layer 2 检索结果 (可选)
+            向量检索结果
+
+        layer3_output: Optional[Layer3StructuredOutput] 类型，Layer 3 结构化输出 (可选)
+            生成的报价单或结构化响应
+
+    使用场景:
+        - 作为邮件分析 API 的响应模型
+        - 前端展示完整的 AI 分析结果
+    """
+    email_id: str
+    layer1_classification: Layer1Analysis
+    layer2_retrieval: Optional[Layer2Retrieval] = None
+    layer3_output: Optional[Layer3StructuredOutput] = None
+
+
+class SubAgentStatus(BaseModel):
+    """
+    子 Agent 状态 Schema
+
+    作用:
+        定义子 Agent 执行状态的数据结构。
+
+    字段说明:
+        agent_name: str 类型，Agent 名称
+            price_agent/compliance_agent/logistics_agent/reply_agent
+
+        status: str 类型，执行状态
+            pending/running/completed/failed
+
+        budget_allocated: float 类型，分配预算
+            分配给该 Agent 的预算 (美元)
+
+        actual_cost: float 类型，实际成本
+            Agent 执行的实际成本 (美元)
+
+        started_at: Optional[str] 类型，开始时间 (可选)
+            ISO 8601 格式的开始时间
+
+        completed_at: Optional[str] 类型，完成时间 (可选)
+            ISO 8601 格式的完成时间
+
+        task_id: str 类型，任务 ID
+            任务的唯一标识符
+
+    使用场景:
+        - 作为 Agent 状态 API 的子 Agent 响应
+        - 前端展示 Agent 执行状态
+    """
+    agent_name: str
+    status: str
+    budget_allocated: float
+    actual_cost: float
+    started_at: Optional[str] = None
+    completed_at: Optional[str] = None
+    task_id: str
+
+
+class AgentStatusResponse(BaseModel):
+    """
+    Agent 执行状态响应 Schema
+
+    作用:
+        定义 GET /api/agents/status 响应的数据结构。
+
+    字段说明:
+        ceo_agent_status: str 类型，CEO Agent 状态
+            idle/processing/completed
+
+        sub_agents: List[SubAgentStatus] 类型，子 Agent 状态列表
+            所有子 Agent 的执行状态
+
+        total_budget: float 类型，总预算
+            分配的总预算 (美元)
+
+        total_spent: float 类型，总消耗
+            已消耗的总预算 (美元)
+
+        budget_utilization: float 类型，预算利用率
+            已用预算占总预算的比例 (0.0-1.0)
+
+    使用场景:
+        - 作为 Agent 状态 API 的响应模型
+        - 前端展示 Agent 监控面板
+    """
+    ceo_agent_status: str
+    sub_agents: List[SubAgentStatus]
+    total_budget: float
+    total_spent: float
+    budget_utilization: float
+
+
+class PromptVersion(BaseModel):
+    """
+    Prompt 版本 Schema
+
+    作用:
+        定义 Prompt 版本的数据结构。
+
+    字段说明:
+        version: str 类型，版本号
+            例如："v1.0.0", "v1.1.0"
+
+        created_at: str 类型，创建时间
+            ISO 8601 格式的日期时间字符串
+
+        layer: str 类型，所属层级
+            layer1/layer2/layer3
+
+        accuracy: float 类型，准确率
+            该版本的准确率 (0.0-1.0)
+
+        change_summary: str 类型，变更摘要
+            本次版本的变更描述
+
+        diff: Optional[str] 类型，变更 diff (可选)
+            与上一版本的差异对比
+
+    使用场景:
+        - 作为 Prompt 版本 API 的响应项
+        - 前端展示 Prompt 版本历史
+    """
+    version: str
+    created_at: str
+    layer: str
+    accuracy: float
+    change_summary: str
+    diff: Optional[str] = None
+
+
+class PromptVersionsResponse(BaseModel):
+    """
+    Prompt 版本历史响应 Schema
+
+    作用:
+        定义 GET /api/prompts/versions 响应的数据结构。
+
+    字段说明:
+        versions: List[PromptVersion] 类型，Prompt 版本列表
+            按创建时间倒序排列的版本列表
+
+        total_versions: int 类型，总版本数
+            系统中 Prompt 版本的总数量
+
+    使用场景:
+        - 作为 Prompt 版本 API 的响应模型
+        - 前端展示 Prompt 版本管理界面
+    """
+    versions: List[PromptVersion]
+    total_versions: int

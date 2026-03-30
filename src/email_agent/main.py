@@ -82,7 +82,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     # 允许的源地址 (前端开发服务器)
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=["http://localhost:5173", "http://localhost:5174", "http://localhost:3000"],
     # 允许携带认证信息 (cookies, authorization headers)
     allow_credentials=True,
     # 允许所有 HTTP 方法
