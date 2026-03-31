@@ -37,8 +37,13 @@ from email_agent.api.schemas import (
 )
 from email_agent.observability.metrics import metrics
 from email_agent.observability.tracing import tracer
+from email_agent.storage.database import get_database
+from email_agent.config import settings
 
 router = APIRouter()
+
+# 获取数据库实例
+db = get_database(settings)
 
 
 # ==================== Mock 数据 ====================
@@ -255,39 +260,43 @@ MOCK_PROMPT_VERSIONS = [
 async def list_emails(status: str = "all", limit: int = 50):
     """
     获取邮件列表
-    
+
     参数:
         status: str 类型，过滤状态 (默认"all")
         limit: int 类型，返回数量限制 (默认 50)
-    
+
     返回:
         EmailListResponse: 包含 emails 列表和 total 总数
     """
-    # TODO: 替换为真实的数据库查询
-    filtered_emails = MOCK_EMAILS
+    # 从数据库获取邮件列表
+    emails = await db.get_all_emails(limit=limit)
+
+    # 状态过滤
     if status != "all":
-        filtered_emails = [e for e in MOCK_EMAILS if e["status"] == status]
-    return {"emails": filtered_emails[:limit], "total": len(filtered_emails)}
+        emails = [e for e in emails if e["status"] == status]
+
+    return {"emails": emails, "total": len(emails)}
 
 
 @router.get("/emails/{email_id}/analysis", response_model=EmailAnalysisResponse)
 async def get_email_analysis(email_id: str):
     """
     获取指定邮件的 AI 分析结果
-    
+
     参数:
         email_id: str 类型，邮件唯一标识符
-    
+
     返回:
         EmailAnalysisResponse: 包含 Layer 1/2/3 分析结果
     """
-    # TODO: 替换为真实的数据库查询
-    analysis = MOCK_ANALYSIS.get(email_id)
+    # 从数据库获取分析结果
+    analysis = await db.get_email_analysis(email_id)
     if not analysis:
         raise HTTPException(status_code=404, detail=f"Analysis not found for email {email_id}")
+
     return EmailAnalysisResponse(
         email_id=email_id,
-        layer1_classification=analysis["layer1_classification"],
+        layer1_classification=analysis.get("layer1_classification"),
         layer2_retrieval=analysis.get("layer2_retrieval"),
         layer3_output=analysis.get("layer3_output")
     )
@@ -296,15 +305,44 @@ async def get_email_analysis(email_id: str):
 @router.get("/emails/{email_id}", response_model=EmailDetail)
 async def get_email(email_id: str):
     """获取邮件详情"""
-    # TODO: 实现真实的数据库查询
-    raise HTTPException(status_code=404, detail="Email not found")
+    # 从数据库获取邮件详情
+    email = await db.get_email_by_id(email_id)
+    if not email:
+        raise HTTPException(status_code=404, detail="Email not found")
+
+    return email
 
 
 @router.get("/agents/status", response_model=AgentStatusResponse)
 async def get_agents_status():
     """获取 Agent 执行状态"""
-    # TODO: 替换为真实的 Agent 状态查询
-    return MOCK_AGENT_STATUS
+    # 从数据库获取 Agent 执行记录
+    executions = await db.get_agent_executions()
+
+    # 构建返回结构
+    sub_agents = [
+        SubAgentStatus(
+            agent_name=ex["agent_name"],
+            status=ex["status"],
+            budget_allocated=ex["budget_allocated"],
+            actual_cost=ex["actual_cost"],
+            started_at=ex["started_at"],
+            completed_at=ex["completed_at"],
+            task_id=ex["task_id"]
+        )
+        for ex in executions[:10]  # 限制返回 10 条
+    ]
+
+    total_budget = sum(ex["budget_allocated"] or 0 for ex in executions)
+    total_spent = sum(ex["actual_cost"] or 0 for ex in executions)
+
+    return AgentStatusResponse(
+        ceo_agent_status="processing" if any(ex["status"] == "running" for ex in executions) else "idle",
+        sub_agents=sub_agents,
+        total_budget=total_budget,
+        total_spent=total_spent,
+        budget_utilization=total_spent / max(1, total_budget)
+    )
 
 
 @router.get("/prompts/versions", response_model=PromptVersionsResponse)

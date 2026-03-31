@@ -16,6 +16,8 @@ Layer 2: ChromaDB 向量数据库客户端模块
     被 retriever.py 调用进行相似邮件搜索。
 """
 from typing import TYPE_CHECKING, List, Optional
+import subprocess
+import json
 
 import chromadb
 from chromadb.api import ClientAPI
@@ -30,6 +32,42 @@ if TYPE_CHECKING:
 
 # 获取当前模块的日志记录器
 logger = get_logger(__name__)
+
+
+def _generate_embedding_with_ollama(text: str, model: str = "nomic-embed-text") -> List[float]:
+    """
+    使用 Ollama 生成 embedding 向量（使用 curl 绕过 httpx 代理问题）
+
+    参数:
+        text: 需要生成 embedding 的文本
+        model: 使用的模型名称
+
+    返回:
+        embedding 向量列表
+    """
+    try:
+        result = subprocess.run(
+            [
+                "curl", "-s", "-X", "POST",
+                "http://localhost:11434/api/embeddings",
+                "-H", "Content-Type: application/json",
+                "-d", json.dumps({"model": model, "prompt": text})
+            ],
+            capture_output=True,
+            text=True,
+            timeout=60
+        )
+
+        if result.returncode != 0:
+            logger.error(f"Ollama curl 失败：{result.stderr}")
+            return []
+
+        response = json.loads(result.stdout)
+        return response.get("embedding", [])
+
+    except Exception as e:
+        logger.error(f"Ollama embedding 生成失败：{e}")
+        return []
 
 
 class ChromaClient:
@@ -121,9 +159,10 @@ class ChromaClient:
         """
         if self._collection is None:
             # 首次访问时获取或创建集合
+            # 注意：不指定 embedding_function，由调用者手动提供 embedding
             self._collection = self.client.get_or_create_collection(
                 name="email_embeddings",
-                metadata={"description": "Historical email embeddings for RAG"}
+                metadata={"hnsw:space": "cosine"}
             )
             logger.info("chromadb_collection_ready")
         return self._collection
@@ -159,12 +198,19 @@ class ChromaClient:
             - 邮件处理完成后，将邮件存入向量库供后续检索
             - 批量导入历史邮件数据
         """
+        # 使用 curl 生成邮件 embedding（绕过 httpx 代理问题）
+        embedding = _generate_embedding_with_ollama(content)
+
+        if not embedding:
+            logger.error("email_embedding_generation_failed", email_id=email_id)
+            return
+
         # 将邮件添加到集合中
-        # documents: 文档内容列表 (此处仅一封邮件)
-        # metadatas: 元数据列表，与 documents 一一对应
+        # embeddings: embedding 向量列表
+        # metadatas: 元数据列表，与 embeddings 一一对应
         # ids: 文档 ID 列表，必须唯一
         self.collection.add(
-            documents=[content],
+            embeddings=[embedding],
             metadatas=[metadata],
             ids=[email_id]
         )
@@ -207,12 +253,19 @@ class ChromaClient:
             - 为新邮件查找相似的历史处理案例
             - RAG 检索增强生成，提供上下文参考
         """
+        # 使用 curl 生成查询 embedding（绕过 httpx 代理问题）
+        query_embedding = _generate_embedding_with_ollama(query_text)
+
+        if not query_embedding:
+            logger.error("query_embedding_generation_failed")
+            return QueryResult(documents=[], metadatas=[], ids=[], distances=[])
+
         # 使用 ChromaDB 的 query 方法进行相似性搜索
-        # query_texts: 查询文本列表 (自动内部生成嵌入)
+        # query_embeddings: 查询嵌入向量列表
         # n_results: 返回最相似的 N 个结果
         # where: 元数据过滤条件 (可选)
         return self.collection.query(
-            query_texts=[query_text],
+            query_embeddings=[query_embedding],
             n_results=n_results,
             where=filter_metadata
         )
