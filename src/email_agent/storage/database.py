@@ -30,7 +30,7 @@ from sqlalchemy import select
 
 from email_agent.config import Settings
 from email_agent.logging_config import get_logger
-from email_agent.storage.models import Customer, PricingPolicy, ComplianceRequirement
+from email_agent.storage.models import Customer, PricingPolicy, ComplianceRequirement, EmailAnalysis
 
 # 获取当前模块的日志记录器
 logger = get_logger(__name__)
@@ -715,6 +715,139 @@ class Database:
                 }
                 for ex in executions
             ]
+
+    async def create_email_analysis(
+        self,
+        email_id: str,
+        layer1_classification: dict = None,
+        layer2_retrieval: dict = None,
+        layer3_output: dict = None,
+        processing_time_ms: float = None,
+        cost: float = None,
+        model_used: str = None
+    ) -> dict:
+        """
+        创建或更新邮件分析记录
+
+        功能描述:
+            创建新的邮件分析记录，或更新已存在的记录。
+            支持分层更新（Layer 1/2/3 可分别更新）。
+
+        参数:
+            email_id: str 类型，邮件唯一标识符
+            layer1_classification: dict 类型，Layer 1 分类结果
+            layer2_retrieval: dict 类型，Layer 2 检索结果
+            layer3_output: dict 类型，Layer 3 生成结果
+            processing_time_ms: float 类型，处理耗时（毫秒）
+            cost: float 类型，API 调用成本（美元）
+            model_used: str 类型，使用的模型名称
+
+        返回值:
+            dict: 创建或更新的分析记录字典
+
+        异常:
+            SQLAlchemy 异常
+
+        使用示例:
+            await db.create_email_analysis(
+                email_id="email_001",
+                layer1_classification={"type": "inquiry", "priority": 0.8},
+                processing_time_ms=1500.0,
+                cost=0.003,
+                model_used="claude-sonnet-4-20250514"
+            )
+        """
+        from email_agent.storage.models import EmailAnalysis
+        from sqlalchemy import select
+
+        async with self.session() as session:
+            # 检查是否已存在分析记录
+            stmt = select(EmailAnalysis).where(EmailAnalysis.email_id == email_id)
+            result = await session.execute(stmt)
+            analysis = result.scalars().first()
+
+            if analysis:
+                # 更新现有记录
+                if layer1_classification:
+                    analysis.layer1_classification = layer1_classification
+                if layer2_retrieval:
+                    analysis.layer2_retrieval = layer2_retrieval
+                if layer3_output:
+                    analysis.layer3_output = layer3_output
+                if processing_time_ms:
+                    analysis.processing_time_ms = processing_time_ms
+                if cost:
+                    analysis.cost = cost
+                if model_used:
+                    analysis.model_used = model_used
+            else:
+                # 创建新记录
+                analysis = EmailAnalysis(
+                    email_id=email_id,
+                    layer1_classification=layer1_classification,
+                    layer2_retrieval=layer2_retrieval,
+                    layer3_output=layer3_output,
+                    processing_time_ms=processing_time_ms,
+                    cost=cost,
+                    model_used=model_used
+                )
+                session.add(analysis)
+
+            await session.commit()
+
+            return {
+                "id": analysis.id,
+                "email_id": analysis.email_id,
+                "layer1_classification": analysis.layer1_classification,
+                "layer2_retrieval": analysis.layer2_retrieval,
+                "layer3_output": analysis.layer3_output,
+                "processing_time_ms": analysis.processing_time_ms,
+                "cost": analysis.cost,
+                "model_used": analysis.model_used
+            }
+
+    async def update_email_status(self, email_id: str, status: str) -> bool:
+        """
+        更新邮件处理状态
+
+        功能描述:
+            更新指定邮件的处理状态。
+            用于追踪邮件处理进度（pending → processing → completed/failed）。
+
+        参数:
+            email_id: str 类型，邮件唯一标识符
+            status: str 类型，新状态
+                - pending: 待处理
+                - processing: 处理中
+                - completed: 已完成
+                - failed: 处理失败
+
+        返回值:
+            bool: 是否成功更新
+
+        异常:
+            SQLAlchemy 异常
+
+        使用示例:
+            await db.update_email_status("email_001", "processing")
+            await db.update_email_status("email_001", "completed")
+        """
+        from email_agent.storage.models import Email
+        from sqlalchemy import select
+
+        async with self.session() as session:
+            stmt = select(Email).where(Email.id == email_id)
+            result = await session.execute(stmt)
+            email = result.scalars().first()
+
+            if email:
+                email.status = status
+                await session.commit()
+                logger.info("email_status_updated", email_id=email_id, status=status)
+                return True
+
+            logger.warning("email_not_found_for_status_update", email_id=email_id)
+            return False
 
 
 # 全局数据库实例 (延迟初始化)
