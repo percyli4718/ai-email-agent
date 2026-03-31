@@ -1,1 +1,37 @@
-.worktrees/
+# Virtual environment
+.venv/
+venv/
+
+# Build artifacts
+*.egg-info/
+dist/
+build/
+*.pyc
+__pycache__/
+*.pyo
+.pytest_cache/
+
+# Node
+node_modules/
+frontend/dist/
+
+# Data
+data/*.db
+data/chroma/
+*.heapsnapshot
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Lock files
+uv.lock
