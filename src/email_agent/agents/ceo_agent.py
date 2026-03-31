@@ -16,11 +16,14 @@ CEO Agent 模块
     依赖 sandbox 模块执行子 Agent 任务，
     依赖 reviewer 模块评审执行结果。
 """
+import asyncio
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 import uuid
 
 from email_agent.logging_config import get_logger
+from email_agent.storage.database import get_database
+from email_agent.config import Settings
 
 # 获取当前模块的日志记录器
 logger = get_logger(__name__)
@@ -258,17 +261,28 @@ class CEOAgent:
 
     主要方法:
         decompose_inquiry: 将询价分解为子 Agent 任务
+        execute_graph: 执行任务依赖图并记录到数据库
 
     属性:
-        无 (无状态，每次调用 decompose_inquiry 创建新的 DependencyGraph)
-
-    任务分解说明:
-        CEO Agent 将询价邮件分解为以下任务:
-        1. Price Agent: 查询产品价格
-        2. Compliance Agent: 检查目的地合规要求 (仅国际订单)
-        3. Logistics Agent: 计算物流成本
-        4. Reply Agent: 生成回复邮件
+        settings: Settings 类型，应用配置
+        db: Database 类型，数据库实例
     """
+
+    def __init__(self, settings: Settings):
+        """
+        初始化 CEO Agent
+
+        参数:
+            settings: Settings 类型，应用配置对象
+
+        返回值:
+            无
+
+        异常:
+            无
+        """
+        self.settings = settings
+        self.db = get_database(settings)
 
     def decompose_inquiry(
         self,
@@ -356,3 +370,143 @@ class CEOAgent:
         )
 
         return graph
+
+    async def execute_graph(
+        self,
+        graph: DependencyGraph,
+        email_id: str
+    ) -> Dict[str, Any]:
+        """
+        执行任务依赖图
+
+        功能描述:
+            按依赖关系顺序执行所有任务，记录执行结果到数据库。
+            支持并行执行无依赖的任务。
+
+        参数:
+            graph: DependencyGraph 类型，任务依赖图
+            email_id: str 类型，关联的邮件 ID
+
+        返回值:
+            Dict[str, Any]: 所有任务的输出结果
+
+        异常:
+            无
+
+        处理流程:
+            1. 获取就绪任务
+            2. 并行执行就绪任务
+            3. 更新任务状态
+            4. 记录执行结果到数据库
+            5. 重复直到所有任务完成
+
+        执行说明:
+            - 无依赖的任务可以并行执行
+            - 有依赖的任务按顺序等待
+            - 失败的任务不影响其他任务
+        """
+        results = {}
+        max_iterations = len(graph.tasks) * 2  # 防止无限循环
+        iteration = 0
+
+        while not graph.is_complete() and iteration < max_iterations:
+            iteration += 1
+
+            # 获取就绪任务
+            ready_tasks = graph.get_ready_tasks()
+
+            if not ready_tasks:
+                # 没有就绪任务，等待一下
+                await asyncio.sleep(0.1)
+                continue
+
+            # 并行执行就绪任务
+            tasks_to_run = []
+            for task in ready_tasks:
+                task.status = "running"
+                tasks_to_run.append(self._execute_task(task, email_id))
+
+            # 等待所有任务完成
+            task_results = await asyncio.gather(*tasks_to_run)
+
+            # 更新任务状态和结果
+            for task, result in zip(ready_tasks, task_results):
+                task.status = "completed"
+                task.output = result
+                results[task.id] = result
+
+                # 记录到数据库
+                await self.db.save_agent_execution(
+                    task_id=task.id,
+                    agent_name=task.agent_name,
+                    email_id=email_id,
+                    status="completed",
+                    budget_allocated=task.budget,
+                    actual_cost=result.get("cost", 0.0),
+                    output_data=result
+                )
+
+                logger.info(
+                    "task_completed",
+                    task_id=task.id,
+                    agent=task.agent_name,
+                    status=task.status
+                )
+
+        return results
+
+    async def _execute_task(
+        self,
+        task: Task,
+        email_id: str
+    ) -> Dict[str, Any]:
+        """
+        执行单个任务（模拟实现）
+
+        功能描述:
+            根据任务类型执行相应的逻辑。
+            实际实现中会调用真实的子 Agent。
+
+        参数:
+            task: Task 类型，任务对象
+            email_id: str 类型，关联的邮件 ID
+
+        返回值:
+            Dict[str, Any]: 任务执行结果
+
+        异常:
+            无
+
+        处理说明:
+            - Price Agent: 返回定价政策
+            - Compliance Agent: 返回合规要求
+            - Logistics Agent: 返回物流成本
+            - Reply Agent: 生成回复草稿
+        """
+        # 模拟执行结果
+        if task.agent_name == "price_agent":
+            return {
+                "products": task.input_data.get("products", []),
+                "prices": [{"product": p, "price": 2.5, "currency": "USD"} for p in task.input_data.get("products", [])],
+                "cost": 0.01
+            }
+        elif task.agent_name == "compliance_agent":
+            return {
+                "destination": task.input_data.get("destination", ""),
+                "requirements": ["CE Marking", "GMP"],
+                "cost": 0.01
+            }
+        elif task.agent_name == "logistics_agent":
+            return {
+                "destination": task.input_data.get("destination", ""),
+                "shipping_cost": 150.0,
+                "lead_time_days": 14,
+                "cost": 0.01
+            }
+        elif task.agent_name == "reply_agent":
+            return {
+                "reply_draft": "Thank you for your inquiry. Please find our quote attached.",
+                "cost": 0.01
+            }
+        else:
+            return {"error": f"Unknown agent: {task.agent_name}", "cost": 0.0}
