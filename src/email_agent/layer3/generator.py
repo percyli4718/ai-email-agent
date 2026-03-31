@@ -19,6 +19,7 @@ Layer 3: 报价生成器模块
 """
 import json
 import uuid
+import time
 from typing import TYPE_CHECKING, Any, Dict
 
 from email_agent.config import Settings
@@ -26,6 +27,7 @@ from email_agent.layer3.prompts import QUOTE_GENERATION_PROMPT, QuoteResult
 from email_agent.layer3.router import ModelChoice, ModelRouter
 from email_agent.logging_config import get_logger
 from email_agent.observability.budget_tracker import BudgetTracker
+from email_agent.storage.database import get_database
 
 # TYPE_CHECKING 用于类型检查时导入，避免运行时循环依赖
 if TYPE_CHECKING:
@@ -79,6 +81,7 @@ class QuoteGenerator:
         self._client = None  # 懒加载客户端
         self.router = ModelRouter()  # 模型路由器，根据复杂度选择模型
         self.budget_tracker = BudgetTracker(settings)  # 预算追踪器
+        self.db = get_database(settings)  # 数据库实例，用于写入报价结果
 
     @property
     def client(self) -> "anthropic.AsyncClient":
@@ -104,6 +107,7 @@ class QuoteGenerator:
 
     async def generate_quote(
         self,
+        email_id: str,
         original_email: str,
         context: Dict[str, Any]
     ) -> QuoteResult:
@@ -112,9 +116,10 @@ class QuoteGenerator:
 
         功能描述:
             使用模型路由器选择合适的模型，基于检索的上下文生成结构化报价。
-            在调用 LLM 前检查预算，调用后记录实际支出。
+            在调用 LLM 前检查预算，调用后记录实际支出，并将结果写入数据库。
 
         参数:
+            email_id: str 类型，邮件唯一标识符
             original_email: str 类型，原始邮件内容 (限制 2000 字符)
             context: Dict[str, Any] 类型，Layer 2 检索的上下文信息
                 - similar_emails: 相似历史邮件
@@ -142,8 +147,12 @@ class QuoteGenerator:
             3. 构造提示词
             4. 调用 LLM 生成报价
             5. 解析并验证 JSON 响应
-            6. 记录日志并返回
+            6. 将结果写入数据库
+            7. 记录日志并返回
         """
+        # 记录开始时间
+        start_time = time.time()
+
         # 使用模型路由器根据上下文复杂度选择模型
         model = self.router.route(context)
 
@@ -178,12 +187,26 @@ class QuoteGenerator:
             # 验证报价包含所有必需字段
             self._validate_quote(result)
 
+            # 计算处理耗时
+            processing_time_ms = (time.time() - start_time) * 1000
+
+            # 将报价结果写入数据库
+            await self.db.create_email_analysis(
+                email_id=email_id,
+                layer3_output=result,
+                processing_time_ms=processing_time_ms,
+                cost=self.budget_tracker.get_last_cost(),
+                model_used=model.value
+            )
+
             # 记录报价生成成功的日志
             logger.info(
                 "quote_generated",
+                email_id=email_id,
                 quote_id=result.get("quote_id"),
                 total=result.get("total_amount"),
-                model=model.value
+                model=model.value,
+                processing_time_ms=f"{processing_time_ms:.2f}"
             )
 
             return result

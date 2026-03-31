@@ -112,6 +112,30 @@ class BudgetTracker:
         self._lock = threading.Lock()  # 线程锁
         self._spending: Dict[str, float] = {}  # 各操作的支出记录
         self._events: List[BudgetEvent] = []  # 预算事件历史
+        self._last_cost: float = 0.0  # 最后一次记录的成本
+
+    def get_last_cost(self) -> float:
+        """
+        获取最后一次记录的成本
+
+        功能描述:
+            返回最近一次 record_spending 调用记录的实际成本。
+            用于写入数据库时记录 API 调用成本。
+
+        参数:
+            无
+
+        返回值:
+            float: 最后一次记录的成本 (美元)
+
+        异常:
+            无
+
+        使用场景:
+            - 写入数据库时记录成本
+            - 显示最近一次 API 调用费用
+        """
+        return self._last_cost
 
     async def check_budget(self, operation: str, estimated_cost: float) -> None:
         """
@@ -200,6 +224,8 @@ class BudgetTracker:
             new_total = current + actual_cost
             # 更新支出记录
             self._spending[operation] = new_total
+            # 记录最后一次成本
+            self._last_cost = actual_cost
 
             # 检查是否超出预算
             if new_total > self.settings.default_agent_budget:
