@@ -6,6 +6,7 @@ from email_agent.storage.models import (
     EmailAnalysis,
     AgentExecution,
     PromptVersion,
+    EmailTemplate,
     init_db_tables,
     drop_db_tables,
 )
@@ -19,6 +20,7 @@ __all__ = [
     "EmailAnalysis",
     "AgentExecution",
     "PromptVersion",
+    "EmailTemplate",
     "init_db_tables",
     "drop_db_tables",
 ]

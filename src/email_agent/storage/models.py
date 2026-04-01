@@ -624,6 +624,79 @@ class ComplianceRequirement(Base):
         return f"<ComplianceRequirement(region='{self.region}', type='{self.requirement_type}', name='{self.requirement_name}')>"
 
 
+class EmailTemplate(Base):
+    """
+    邮件模板模型
+
+    作用:
+        存储邮件生成模板配置。
+        每个模板包含主题和正文模板，用于生成测试邮件。
+
+    表名：email_templates
+
+    字段说明:
+        id: int 类型，主键 (自增)
+            模板唯一标识符
+
+        type: str 类型，邮件类型
+            inquiry/rfq/complaint/status_check
+
+        product_name: str 类型，产品名称
+            模板关联的产品名称
+
+        region: str 类型，目标地区
+            Europe/Asia/South America/Middle East
+
+        quantity_range: str 类型，数量范围
+            如 "100-500", "500-1000", "1000-5000"
+
+        subject_template: str 类型，主题模板
+            包含占位符的邮件主题模板
+
+        body_template: str 类型，正文模板
+            包含占位符的邮件正文模板
+
+        is_active: bool 类型，是否启用
+            控制模板是否可用于生成
+
+        created_at: datetime 类型，创建时间
+            模板创建的时间
+
+    使用场景:
+        - 邮件生成器随机选择模板生成测试邮件
+        - 管理后台配置可用水印模板
+    """
+    __tablename__ = "email_templates"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    type: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    product_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    region: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    quantity_range: Mapped[str] = mapped_column(String(50), nullable=False)
+    subject_template: Mapped[str] = mapped_column(Text, nullable=False)
+    body_template: Mapped[str] = mapped_column(Text, nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    def to_dict(self) -> dict:
+        """转换为字典"""
+        return {
+            "id": self.id,
+            "type": self.type,
+            "product_name": self.product_name,
+            "region": self.region,
+            "quantity_range": self.quantity_range,
+            "subject_template": self.subject_template,
+            "body_template": self.body_template,
+            "is_active": self.is_active,
+            "created_at": self.created_at.isoformat() if self.created_at else None
+        }
+
+    def __repr__(self) -> str:
+        """返回邮件模板的字符串表示，用于调试"""
+        return f"<EmailTemplate(id={self.id}, type='{self.type}', product='{self.product_name}', region='{self.region}')>"
+
+
 # ==================== 数据库初始化辅助函数 ====================
 
 async def init_db_tables(engine) -> None:
