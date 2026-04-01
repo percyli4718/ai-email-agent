@@ -1,11 +1,29 @@
 import React, { useState, useCallback } from 'react';
 import { useEmails } from './hooks/useEmails';
 import { useEmailAnalysis } from './hooks/useEmailAnalysis';
-import { useMetrics, useTraces, usePromptVersions } from './hooks';
+import { useMetrics, useTraces, usePromptVersions, usePrometheusMetrics } from './hooks';
 import { useAgentsStatus } from './hooks/useAgentsStatus';
 import { Email as ApiEmail, AnalysisSection, Metric, TraceSpan, PromptVersion, Agent } from './types/api';
 import GenerateEmailPanel from './components/GenerateEmailPanel';
 import type { GeneratedEmail } from './types/generator';
+
+// ============================================================================
+// Types
+// ============================================================================
+
+interface PrometheusMetrics {
+  counters: Record<string, number>;
+  gauges: Record<string, number>;
+  histograms: Record<string, {
+    count: number;
+    sum: number;
+    avg: number;
+    min: number;
+    max: number;
+    p50: number;
+    p95: number;
+  }>;
+}
 
 // ============================================================================
 // 类型定义
@@ -761,8 +779,9 @@ const MetricsTab: React.FC = () => {
   const { data: metrics, isLoading: metricsLoading, error: metricsError } = useMetrics();
   const { data: traces, isLoading: tracesLoading, error: tracesError } = useTraces('current-trace');
   const { data: versions, isLoading: versionsLoading, error: versionsError } = usePromptVersions();
+  const { data: prometheusData, isLoading: prometheusLoading } = usePrometheusMetrics();
 
-  if (metricsLoading || tracesLoading || versionsLoading) {
+  if (metricsLoading || tracesLoading || versionsLoading || prometheusLoading) {
     return (
       <div className="space-y-6">
         <div className="text-center text-[#94a3b8] py-12">
@@ -784,9 +803,20 @@ const MetricsTab: React.FC = () => {
     );
   }
 
+  // 计算预算使用率
+  const budgetSpent = prometheusData?.gauges['budget_spent'] || 0;
+  const budgetMax = 0.50; // 默认 Agent 预算
+  const budgetPercentage = Math.min((budgetSpent / budgetMax) * 100, 100);
+
   return (
     <div className="space-y-6">
-      {/* Metrics Grid */}
+      {/* Prometheus Metrics Section */}
+      <PrometheusMetricsSection data={prometheusData} />
+
+      {/* Budget Usage */}
+      <BudgetUsageCard spent={budgetSpent} max={budgetMax} percentage={budgetPercentage} />
+
+      {/* Standard Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {metrics?.map((metric, index) => (
           <MetricCard key={index} metric={metric} />
@@ -976,3 +1006,121 @@ const PromptEvolution: React.FC<PromptEvolutionProps> = ({ versions }) => {
 };
 
 export default App;
+
+// ============================================================================
+// Prometheus Metrics Section Component
+// ============================================================================
+
+interface PrometheusMetricsSectionProps {
+  data: PrometheusMetrics | null;
+}
+
+const PrometheusMetricsSection: React.FC<PrometheusMetricsSectionProps> = ({ data }) => {
+  if (!data || (!Object.keys(data.counters).length && !Object.keys(data.gauges).length)) {
+    return null;
+  }
+
+  return (
+    <div className="bg-gradient-to-br from-[#1e293b] to-[#0f172a] rounded-2xl border border-[#334155] overflow-hidden">
+      <div className="bg-gradient-to-r from-[#1e293b] to-[#334155] px-5 py-4 border-b border-[#475569]">
+        <h2 className="text-lg font-semibold text-[#e2e8f0]">
+          📊 Prometheus 指标 | Prometheus Metrics
+        </h2>
+      </div>
+      <div className="p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* Counters */}
+        {Object.entries(data.counters).map(([name, value]) => (
+          <div key={name} className="bg-[#0f172a] border border-[#1e293b] rounded-lg p-4">
+            <div className="text-xs text-[#64748b] uppercase mb-1">{name}</div>
+            <div className="text-xl font-bold text-[#10b981] font-mono">{value.toLocaleString()}</div>
+            <div className="text-xs text-[#64748b] mt-1">Counter</div>
+          </div>
+        ))}
+        {/* Gauges */}
+        {Object.entries(data.gauges).map(([name, value]) => (
+          <div key={name} className="bg-[#0f172a] border border-[#1e293b] rounded-lg p-4">
+            <div className="text-xs text-[#64748b] uppercase mb-1">{name}</div>
+            <div className="text-xl font-bold text-[#f59e0b] font-mono">${value.toFixed(4)}</div>
+            <div className="text-xs text-[#64748b] mt-1">Gauge</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// ============================================================================
+// Budget Usage Card Component
+// ============================================================================
+
+interface BudgetUsageCardProps {
+  spent: number;
+  max: number;
+  percentage: number;
+}
+
+const BudgetUsageCard: React.FC<BudgetUsageCardProps> = ({ spent, max, percentage }) => {
+  const getStatusColor = () => {
+    if (percentage >= 90) return 'text-[#ef4444]';
+    if (percentage >= 70) return 'text-[#f59e0b]';
+    return 'text-[#10b981]';
+  };
+
+  const getBarColor = () => {
+    if (percentage >= 90) return 'from-[#ef4444] to-[#dc2626]';
+    if (percentage >= 70) return 'from-[#f59e0b] to-[#d97706]';
+    return 'from-[#10b981] to-[#059669]';
+  };
+
+  return (
+    <div className="bg-gradient-to-br from-[#1e293b] to-[#0f172a] rounded-2xl border border-[#334155] overflow-hidden">
+      <div className="bg-gradient-to-r from-[#1e293b] to-[#334155] px-5 py-4 border-b border-[#475569]">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-[#e2e8f0]">
+            💰 预算使用 | Budget Usage
+          </h2>
+          <span className={`text-sm font-medium ${getStatusColor()}`}>
+            {percentage.toFixed(1)}%
+          </span>
+        </div>
+      </div>
+      <div className="p-5">
+        {/* Progress Bar */}
+        <div className="mb-4">
+          <div className="flex justify-between text-sm text-[#94a3b8] mb-2">
+            <span>已用 | Used: ${spent.toFixed(4)}</span>
+            <span>预算 | Budget: ${max.toFixed(2)}</span>
+          </div>
+          <div className="h-3 bg-[#0f172a] rounded-full overflow-hidden">
+            <div
+              className={`h-full bg-gradient-to-r ${getBarColor()} rounded-full transition-all duration-500`}
+              style={{ width: `${percentage}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Budget Status */}
+        <div className="grid grid-cols-3 gap-4">
+          <div className="bg-[#0f172a] border border-[#1e293b] rounded-lg p-3 text-center">
+            <div className="text-xs text-[#64748b] mb-1">剩余 | Remaining</div>
+            <div className="text-lg font-bold text-[#10b981] font-mono">
+              ${(max - spent).toFixed(4)}
+            </div>
+          </div>
+          <div className="bg-[#0f172a] border border-[#1e293b] rounded-lg p-3 text-center">
+            <div className="text-xs text-[#64748b] mb-1">使用率 | Usage</div>
+            <div className={`text-lg font-bold font-mono ${getStatusColor()}`}>
+              {percentage.toFixed(1)}%
+            </div>
+          </div>
+          <div className="bg-[#0f172a] border border-[#1e293b] rounded-lg p-3 text-center">
+            <div className="text-xs text-[#64748b] mb-1">状态 | Status</div>
+            <div className={`text-lg font-bold ${getStatusColor()}`}>
+              {percentage >= 90 ? '⚠️' : percentage >= 70 ? '⚡' : '✅'}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
