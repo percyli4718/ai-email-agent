@@ -123,6 +123,32 @@ npm run dev
 | `/api/traces` | GET | 分布式追踪 |
 | `/api/health` | GET | 健康检查 |
 
+## 邮件生成器
+
+### 生成测试邮件
+
+```bash
+# 前端界面
+# 在 Inbox 页面顶部点击"➕ 创建新邮件"按钮
+
+# API 调用
+curl -X POST http://localhost:8000/api/emails/generate \
+  -H "Content-Type: application/json" \
+  -d '{"count": 5, "auto_process": false}'
+
+# 注入模板数据
+python scripts/seed_email_templates.py
+```
+
+### 预算估算
+
+| 操作 | 成本 |
+|------|------|
+| 仅生成邮件 | $0 (本地生成) |
+| 自动触发处理 | ~$0.02-0.05/封 |
+| 批量生成 10 封 + 自动处理 | ~$0.20-0.50 |
+```
+
 ## 测试指南
 
 ### 运行所有测试
