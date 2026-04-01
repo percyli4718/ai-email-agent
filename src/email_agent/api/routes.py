@@ -284,6 +284,10 @@ async def generate_emails(request: GenerateEmailsRequest) -> GeneratedEmailsResp
         - 生成测试邮件用于系统测试
         - 批量生成模拟邮件数据
     """
+    from email_agent.storage.models import Email as EmailModel
+    from sqlalchemy import insert
+    from datetime import datetime
+
     # 初始化服务
     template_service = EmailTemplateService(db)
     generator = EmailGenerator(template_service, db)
@@ -291,7 +295,7 @@ async def generate_emails(request: GenerateEmailsRequest) -> GeneratedEmailsResp
     # 生成邮件
     emails_data = await generator.generate_emails(request.count)
 
-    # 转换为响应格式
+    # 转换为响应格式并保存到数据库
     generated_emails = []
     for email_data in emails_data:
         # 保存客户到数据库
@@ -302,6 +306,21 @@ async def generate_emails(request: GenerateEmailsRequest) -> GeneratedEmailsResp
                 "region": email_data["region"],
             }
         )
+
+        # 保存邮件到数据库
+        async with db.session() as session:
+            stmt = insert(EmailModel).values(
+                id=email_data["email_id"],
+                customer_id=customer.id,
+                subject=email_data["subject"],
+                body=email_data["body"],
+                from_address=email_data["from_email"],
+                priority=email_data["priority"],
+                status="pending",
+                received_at=datetime.utcnow(),
+            )
+            await session.execute(stmt)
+            await session.commit()
 
         # 构建生成的邮件对象
         generated_email = GeneratedEmail(

@@ -236,11 +236,23 @@ class EmailGenerator:
         packing = random.choice(self.PACKING_OPTIONS)
         standard = random.choice(self.STANDARDS)
 
+        # 生成辅助数据
+        batch_number = f"BATCH{random.randint(100000, 999999)}"
+        order_number = f"ORD{random.randint(100000, 999999)}"
+        destination = template.region  # 默认目的地为区域
+
         # 生成主题和正文
         subject = template.subject_template.format(
             product=template.product_name,
             quantity=quantity,
             packing=packing,
+            standard=standard,
+            customer_name=customer["name"],
+            email=customer["email"],
+            region=template.region,
+            destination=destination,
+            batch_number=batch_number,
+            order_number=order_number,
         )
         body = template.body_template.format(
             product=template.product_name,
@@ -248,6 +260,11 @@ class EmailGenerator:
             packing=packing,
             standard=standard,
             customer_name=customer["name"],
+            email=customer["email"],
+            region=template.region,
+            destination=destination,
+            batch_number=batch_number,
+            order_number=order_number,
         )
 
         # 确定优先级
