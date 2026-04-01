@@ -15,7 +15,7 @@ API Schema 模块
     是应用 API 层的数据模式定义，
     被 routes.py 用作响应模型。
 """
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 
@@ -606,3 +606,194 @@ class PromptVersionsResponse(BaseModel):
     """
     versions: List[PromptVersion]
     total_versions: int
+
+
+# ==================== 新增 Schema: 邮件生成器 API ====================
+
+
+class GenerateEmailsRequest(BaseModel):
+    """
+    邮件生成请求 Schema
+
+    作用:
+        定义 POST /api/emails/generate 请求的数据结构。
+
+    字段说明:
+        count: int 类型，生成数量 (可选，默认 1)
+            要生成的邮件数量，范围 1-100
+
+        auto_process: bool 类型，是否自动处理 (可选，默认 False)
+            是否生成后立即开始处理流程
+
+        filters: Optional[Dict[str, str]] 类型，过滤条件 (可选)
+            用于过滤模板的字典，如 {"region": "Europe", "type": "rfq"}
+
+    使用场景:
+        - 作为邮件生成 API 的请求模型
+        - 前端提交生成请求
+    """
+    count: int = Field(1, ge=1, le=100)
+    auto_process: bool = Field(False)
+    filters: Optional[Dict[str, str]] = None
+
+
+class GeneratedEmailCustomer(BaseModel):
+    """
+    生成邮件的客户信息 Schema
+
+    作用:
+        定义生成邮件中客户信息的数据结构。
+
+    字段说明:
+        name: str 类型，客户名称
+            客户公司名称
+
+        company: str 类型，公司名称
+            与客户名称相同，用于兼容性
+
+        email: str 类型，邮箱地址
+            客户的邮箱地址
+
+    使用场景:
+        - 作为生成邮件响应中的客户信息
+        - 前端展示发件人信息
+    """
+    name: str
+    company: str
+    email: str
+
+
+class GeneratedEmail(BaseModel):
+    """
+    生成的邮件 Schema
+
+    作用:
+        定义生成邮件的数据结构。
+
+    字段说明:
+        id: str 类型，邮件 ID
+            邮件的唯一标识符
+
+        from_address: str 类型，发件人地址
+            发件人的邮箱地址
+
+        subject: str 类型，邮件主题
+            生成的邮件主题
+
+        preview: str 类型，邮件预览
+            邮件正文的预览内容
+
+        priority: str 类型，优先级
+            high/medium/low
+
+        status: str 类型，状态
+            pending/processing/completed
+
+        region: str 类型，区域
+            客户所在区域
+
+        customer: GeneratedEmailCustomer 类型，客户信息
+            发件客户的详细信息
+
+    使用场景:
+        - 作为邮件生成 API 响应中的邮件项
+        - 前端展示生成的邮件列表
+    """
+    id: str
+    from_address: str
+    subject: str
+    preview: str
+    priority: str
+    status: str
+    region: str
+    customer: GeneratedEmailCustomer
+
+
+class GeneratedEmailsResponse(BaseModel):
+    """
+    邮件生成响应 Schema
+
+    作用:
+        定义 POST /api/emails/generate 响应的数据结构。
+
+    字段说明:
+        generated_emails: List[GeneratedEmail] 类型，生成的邮件列表
+            成功生成的邮件列表
+
+        total: int 类型，总数
+            生成的邮件总数量
+
+        auto_process_started: bool 类型，是否开始自动处理
+            表示是否已启动自动处理流程
+
+    使用场景:
+        - 作为邮件生成 API 的响应模型
+        - 前端展示生成结果
+    """
+    generated_emails: List[GeneratedEmail]
+    total: int
+    auto_process_started: bool
+
+
+class EmailTemplateResponse(BaseModel):
+    """
+    邮件模板响应 Schema
+
+    作用:
+        定义单个邮件模板的响应数据结构。
+
+    字段说明:
+        id: int 类型，模板 ID
+            模板的唯一标识符
+
+        type: str 类型，邮件类型
+            inquiry/rfq/complaint/status_check
+
+        product_name: str 类型，产品名称
+            模板关联的产品名称
+
+        region: str 类型，目标地区
+            Europe/Asia/South America/Middle East
+
+        quantity_range: str 类型，数量范围
+            如 "100-500", "500-1000"
+
+        is_active: bool 类型，是否启用
+            控制模板是否可用于生成
+
+        created_at: str 类型，创建时间
+            ISO 8601 格式的日期时间字符串
+
+    使用场景:
+        - 作为模板列表 API 响应中的模板项
+        - 前端展示模板配置
+    """
+    id: int
+    type: str
+    product_name: str
+    region: str
+    quantity_range: str
+    is_active: bool
+    created_at: str
+
+
+class EmailTemplatesResponse(BaseModel):
+    """
+    邮件模板列表响应 Schema
+
+    作用:
+        定义 GET /api/emails/templates 响应的数据结构。
+
+    字段说明:
+        templates: List[EmailTemplateResponse] 类型，模板列表
+            所有可用模板的列表
+
+        total: int 类型，总模板数
+            系统中模板的总数量
+
+    使用场景:
+        - 作为模板列表 API 的响应模型
+        - 前端展示模板管理界面
+    """
+    templates: List[EmailTemplateResponse]
+    total: int

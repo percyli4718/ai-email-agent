@@ -34,10 +34,19 @@ from email_agent.api.schemas import (
     SubAgentStatus,
     PromptVersionsResponse,
     PromptVersion,
+    GenerateEmailsRequest,
+    GeneratedEmailsResponse,
+    GeneratedEmail,
+    GeneratedEmailCustomer,
+    EmailTemplateResponse,
+    EmailTemplatesResponse,
 )
 from email_agent.observability.metrics import metrics
 from email_agent.observability.tracing import tracer
 from email_agent.storage.database import get_database
+from email_agent.storage.models import EmailTemplate
+from email_agent.generator.email_generator import EmailGenerator
+from email_agent.generator.template_service import EmailTemplateService
 from email_agent.config import settings
 
 router = APIRouter()
@@ -251,6 +260,109 @@ MOCK_PROMPT_VERSIONS = [
         "diff": None
     }
 ]
+
+
+# ==================== 邮件生成器端点 ====================
+# 注意：这些端点必须在 /emails/{email_id} 之前定义，因为 FastAPI 按顺序匹配路由
+
+
+@router.post("/emails/generate", response_model=GeneratedEmailsResponse)
+async def generate_emails(request: GenerateEmailsRequest) -> GeneratedEmailsResponse:
+    """
+    生成测试邮件
+
+    参数:
+        request: GenerateEmailsRequest 类型，生成请求
+            - count: 生成数量 (1-100)
+            - auto_process: 是否自动处理
+            - filters: 过滤条件
+
+    返回:
+        GeneratedEmailsResponse: 包含生成的邮件列表和总数
+
+    使用场景:
+        - 生成测试邮件用于系统测试
+        - 批量生成模拟邮件数据
+    """
+    # 初始化服务
+    template_service = EmailTemplateService(db)
+    generator = EmailGenerator(template_service, db)
+
+    # 生成邮件
+    emails_data = await generator.generate_emails(request.count)
+
+    # 转换为响应格式
+    generated_emails = []
+    for email_data in emails_data:
+        # 保存客户到数据库
+        customer = await db.get_or_create_customer(
+            email=email_data["from_email"],
+            defaults={
+                "name": email_data["from_name"],
+                "region": email_data["region"],
+            }
+        )
+
+        # 构建生成的邮件对象
+        generated_email = GeneratedEmail(
+            id=email_data["email_id"],
+            from_address=email_data["from_email"],
+            subject=email_data["subject"],
+            preview=email_data["body"][:200] + "..." if len(email_data["body"]) > 200 else email_data["body"],
+            priority=email_data["priority"],
+            status="pending",
+            region=email_data["region"],
+            customer=GeneratedEmailCustomer(
+                name=email_data["from_name"],
+                company=email_data["from_name"],
+                email=email_data["from_email"],
+            )
+        )
+        generated_emails.append(generated_email)
+
+    return GeneratedEmailsResponse(
+        generated_emails=generated_emails,
+        total=len(generated_emails),
+        auto_process_started=request.auto_process
+    )
+
+
+@router.get("/emails/templates", response_model=EmailTemplatesResponse)
+async def list_templates() -> EmailTemplatesResponse:
+    """
+    获取所有邮件模板
+
+    返回:
+        EmailTemplatesResponse: 包含模板列表和总数
+
+    使用场景:
+        - 前端展示可用模板列表
+        - 管理后台配置模板
+    """
+    # 初始化服务
+    template_service = EmailTemplateService(db)
+
+    # 获取所有模板
+    templates = await template_service.get_all_templates()
+
+    # 转换为响应格式
+    template_responses = [
+        EmailTemplateResponse(
+            id=template.id,
+            type=template.type,
+            product_name=template.product_name,
+            region=template.region,
+            quantity_range=template.quantity_range,
+            is_active=template.is_active,
+            created_at=template.created_at.isoformat() if template.created_at else ""
+        )
+        for template in templates
+    ]
+
+    return EmailTemplatesResponse(
+        templates=template_responses,
+        total=len(template_responses)
+    )
 
 
 # ==================== 数据端点 ====================

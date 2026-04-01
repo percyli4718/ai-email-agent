@@ -74,6 +74,28 @@ class EmailTemplateService:
             result = await session.execute(stmt)
             return list(result.scalars().all())
 
+    async def get_all_templates(self) -> List[EmailTemplate]:
+        """
+        获取所有模板（包括已停用的）
+
+        功能描述:
+            查询数据库中所有模板，不分是否启用。
+            用于管理后台展示完整模板列表。
+
+        参数:
+            无
+
+        返回值:
+            List[EmailTemplate]: 所有模板列表
+
+        异常:
+            SQLAlchemy 异常
+        """
+        async with self.db.session() as session:
+            stmt = select(EmailTemplate).order_by(EmailTemplate.created_at.desc())
+            result = await session.execute(stmt)
+            return list(result.scalars().all())
+
     async def get_random_template(
         self,
         template_type: Optional[str] = None,
