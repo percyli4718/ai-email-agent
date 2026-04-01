@@ -341,6 +341,65 @@ class Database:
             logger.info("customer_created", email=email, tier=tier)
             return customer
 
+    async def get_or_create_customer(
+        self,
+        email: str,
+        defaults: dict = None
+    ) -> Customer:
+        """
+        获取或创建客户
+
+        功能描述:
+            根据邮箱查找客户，如果不存在则创建新客户。
+            用于邮件生成器创建邮件时快速处理客户记录。
+
+        参数:
+            email: str 类型，客户邮箱地址
+            defaults: dict 类型，创建时使用的默认值
+                - name: 客户名称
+                - region: 客户区域
+                - tier: 客户等级 (默认 C)
+
+        返回值:
+            Customer: 客户对象（已存在或新创建）
+
+        异常:
+            SQLAlchemy 异常
+
+        使用示例:
+            customer = await db.get_or_create_customer(
+                email="john@example.com",
+                defaults={"name": "PharmaCom UK", "region": "Europe", "tier": "A"}
+            )
+        """
+        from email_agent.storage.models import Customer
+        from sqlalchemy import select
+
+        async with self.session() as session:
+            # 尝试查找现有客户
+            stmt = select(Customer).where(Customer.email == email)
+            result = await session.execute(stmt)
+            customer = result.scalar_one_or_none()
+
+            if customer:
+                return customer
+
+            # 创建新客户
+            if defaults is None:
+                defaults = {}
+
+            customer = Customer(
+                email=email,
+                name=defaults.get("name", "Unknown Customer"),
+                region=defaults.get("region", "Unknown"),
+                tier=defaults.get("tier", "C")
+            )
+            session.add(customer)
+            await session.commit()
+            await session.refresh(customer)
+            logger.info("customer_created", email=email, tier=customer.tier)
+            return customer
+
     async def save_email_analysis(
         self,
         email_id: str,
