@@ -358,6 +358,71 @@ class MetricsCollector:
         """
         return self._history[-limit:]
 
+    def to_prometheus(self) -> str:
+        """
+        导出为 Prometheus 格式
+
+        功能描述:
+            将所有指标转换为 Prometheus Exposition Format。
+            用于 Prometheus 抓取或 Grafana 展示。
+
+        参数:
+            无
+
+        返回值:
+            str: Prometheus 格式的指标字符串
+
+        异常:
+            无
+
+        输出示例:
+            # HELP email_processed_total Total number of emails processed
+            # TYPE email_processed_total counter
+            email_processed_total 1250.0
+
+            # HELP budget_spent Budget spent in USD
+            # TYPE budget_spent gauge
+            budget_spent 0.75
+
+            # HELP processing_time_ms Processing time in milliseconds
+            # TYPE processing_time_ms histogram
+            processing_time_ms_count 100
+            processing_time_ms_sum 15050.5
+            processing_time_ms_avg 150.505
+        """
+        lines = []
+
+        # 导出计数器
+        for name, value in self._counters.items():
+            lines.append(f"# HELP {name} Total {name}")
+            lines.append(f"# TYPE {name} counter")
+            lines.append(f"{name} {value}")
+            lines.append("")
+
+        # 导出仪表盘
+        for name, value in self._gauges.items():
+            lines.append(f"# HELP {name} Current {name}")
+            lines.append(f"# TYPE {name} gauge")
+            lines.append(f"{name} {value}")
+            lines.append("")
+
+        # 导出直方图统计
+        for name, values in self._histograms.items():
+            if values:
+                stats = self.get_histogram_stats(name)
+                lines.append(f"# HELP {name} {name} in milliseconds")
+                lines.append(f"# TYPE {name} histogram")
+                lines.append(f"{name}_count {stats['count']}")
+                lines.append(f"{name}_sum {sum(values)}")
+                lines.append(f"{name}_avg {stats['avg']}")
+                lines.append(f"{name}_min {stats['min']}")
+                lines.append(f"{name}_max {stats['max']}")
+                lines.append(f"{name}_p50 {stats['p50']}")
+                lines.append(f"{name}_p95 {stats['p95']}")
+                lines.append("")
+
+        return "\n".join(lines)
+
 
 # 全局唯一的指标收集器实例
 metrics = MetricsCollector()

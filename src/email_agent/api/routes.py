@@ -17,6 +17,7 @@ API 路由模块
     依赖 observability 模块获取指标和追踪数据。
 """
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import Response
 from typing import List
 from datetime import datetime
 
@@ -501,6 +502,24 @@ async def get_metrics():
         classification_accuracy=metrics.get_gauge("classification_accuracy") or 0.95,
         sonnet_routing_rate=metrics.get_gauge("sonnet_routing_rate") or 0.80,
         prompt_versions=int(metrics.get_counter("prompt_versions"))
+    )
+
+
+@router.get("/metrics/prometheus")
+async def get_metrics_prometheus():
+    """
+    导出 Prometheus 格式指标
+
+    用于 Prometheus 抓取或 Grafana 展示。
+    返回 Prometheus Exposition Format 格式的指标数据。
+    """
+    from email_agent.observability.metrics import metrics as metrics_collector
+
+    prometheus_metrics = metrics_collector.to_prometheus()
+
+    return Response(
+        content=prometheus_metrics,
+        media_type="text/plain"
     )
 
 
