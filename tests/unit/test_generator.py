@@ -32,6 +32,7 @@ async def test_generator_creates_quote():
         mock_llm.return_value = json.dumps(mock_response)
 
         result = await generator.generate_quote(
+            email_id="test-123",
             original_email="We want to order Paracetamol",
             context={
                 "similar_emails": {"documents": []},
@@ -61,6 +62,7 @@ async def test_generator_validates_required_fields():
 
         with pytest.raises(QuoteGenerationError):
             await generator.generate_quote(
+                email_id="test-123",
                 original_email="test",
                 context={}
             )

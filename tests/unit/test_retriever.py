@@ -24,10 +24,10 @@ async def test_retriever_returns_all_context():
                       return_value=mock_similar_emails):
         with patch.object(retriever.db, 'query_customer',
                          return_value={"name": "Test Customer", "tier": "B"}):
-            with patch.object(retriever.db, 'query_pricing',
-                             return_value={"discount": 0.15}):
-                with patch.object(retriever.db, 'query_compliance',
-                                 return_value={"required": ["ANVISA"]}):
+            with patch.object(retriever.db, 'query_pricing_policy',
+                             return_value={"policies": [], "region": "brazil"}):
+                with patch.object(retriever.db, 'query_compliance_requirements',
+                                 return_value={"requirements": [{"type": "ANVISA"}]}):
 
                     result = await retriever.retrieve(
                         email_id="test-123",

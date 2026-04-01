@@ -1,10 +1,12 @@
 import pytest
 from email_agent.agents.ceo_agent import CEOAgent, DependencyGraph
+from email_agent.config import Settings
 
 
 def test_ceo_decomposes_inquiry():
     """Test that CEO Agent decomposes inquiry into tasks."""
-    ceo = CEOAgent()
+    settings = Settings()
+    ceo = CEOAgent(settings)
 
     classification = {
         "type": "inquiry",

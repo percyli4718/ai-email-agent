@@ -34,6 +34,7 @@ async def test_classifier_parses_response():
 
         classifier = EmailClassifier(settings)
         result = await classifier.classify(
+            email_id="test-123",
             email_body="We want to order Paracetamol",
             subject="Bulk Order Inquiry"
         )
@@ -61,4 +62,8 @@ async def test_classifier_validates_required_fields():
         classifier = EmailClassifier(settings)
 
         with pytest.raises(ClassificationError):
-            await classifier.classify(email_body="test", subject="test")
+            await classifier.classify(
+                email_id="test-123",
+                email_body="test",
+                subject="test"
+            )

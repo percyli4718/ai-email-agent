@@ -6,9 +6,13 @@ CEO Agent 端到端测试
 1. 测试任务分解（decompose_inquiry）
 2. 测试任务执行（execute_graph）
 3. 测试数据库记录
+
+注意：本测试文件设计为脚本运行，pytest 收集时跳过。
+运行方式：python tests/agents/test_ceo_agent_e2e.py
 """
 import asyncio
 import sys
+import pytest
 from pathlib import Path
 
 # 添加项目根目录到 Python 路径
@@ -16,6 +20,10 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from email_agent.config import settings
 from email_agent.agents.ceo_agent import CEOAgent, DependencyGraph
+
+
+# 标记这些函数为脚本函数，pytest 跳过
+pytestmark = pytest.mark.skip(reason="Run as script: python tests/agents/test_ceo_agent_e2e.py")
 
 
 async def test_decompose_inquiry():
