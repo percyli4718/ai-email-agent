@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useEmails } from './hooks/useEmails';
 import { useEmailAnalysis } from './hooks/useEmailAnalysis';
 import { useMetrics, useTraces, usePromptVersions } from './hooks';
 import { useAgentsStatus } from './hooks/useAgentsStatus';
 import { Email as ApiEmail, AnalysisSection, Metric, TraceSpan, PromptVersion, Agent } from './types/api';
+import GenerateEmailPanel from './components/GenerateEmailPanel';
+import type { GeneratedEmail } from './types/generator';
 
 // ============================================================================
 // 类型定义
@@ -44,6 +46,16 @@ const CURRENT_TRACE_ID = '2847';
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'inbox' | 'agents' | 'metrics'>('inbox');
   const [selectedEmail, setSelectedEmail] = useState<string | null>(null);
+
+  // Get refetch from useEmails hook
+  const { refetch } = useEmails();
+
+  // Handle new emails generated
+  const handleNewEmailsGenerated = useCallback((emails: GeneratedEmail[]) => {
+    console.log('新邮件已生成:', emails);
+    // Trigger refresh of email list
+    refetch();
+  }, [refetch]);
 
   return (
     <div className="min-h-screen bg-[#0a0e1a] text-[#e2e8f0]">
@@ -94,10 +106,16 @@ const App: React.FC = () => {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-6 py-6">
         {activeTab === 'inbox' && (
-          <InboxTab
-            selectedEmail={selectedEmail}
-            onSelectEmail={setSelectedEmail}
-          />
+          <div>
+            <div className="mb-4 flex justify-between items-center">
+              <h2 className="text-xl font-bold text-[#e2e8f0]">📨 收件箱 | Inbox</h2>
+              <GenerateEmailPanel onEmailsGenerated={handleNewEmailsGenerated} />
+            </div>
+            <InboxTab
+              selectedEmail={selectedEmail}
+              onSelectEmail={setSelectedEmail}
+            />
+          </div>
         )}
         {activeTab === 'agents' && <AgentsTab />}
         {activeTab === 'metrics' && <MetricsTab />}
