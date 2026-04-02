@@ -915,7 +915,7 @@ class Database:
         message: str,
         level: str = "info",
         related_id: Optional[str] = None,
-        metadata: Optional[dict] = None
+        extra_data: Optional[dict] = None
     ) -> dict:
         """
         创建通知记录
@@ -931,7 +931,7 @@ class Database:
             level: str 类型，通知级别，默认 "info"
                 info/success/warning/error
             related_id: str 类型，可选，关联 ID
-            metadata: dict 类型，可选，元数据
+            extra_data: dict 类型，可选，额外数据
 
         返回值:
             dict: 创建的通知记录字典
@@ -955,7 +955,7 @@ class Database:
                 message=message,
                 level=level,
                 related_id=related_id,
-                metadata=metadata
+                extra_data=extra_data
             )
             result = await session.execute(stmt)
             await session.commit()

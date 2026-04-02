@@ -20,11 +20,13 @@ from datetime import datetime
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.routing import APIRoute
+from starlette.websockets import WebSocket
 
 from email_agent.config import settings, get_settings
 from email_agent.logging_config import setup_logging, get_logger
 from email_agent.storage.database import get_database
-from email_agent.api.routes import router
+from email_agent.api.routes import router, websocket_notifications
 
 # 获取当前模块的日志记录器
 logger = get_logger(__name__)
@@ -79,10 +81,11 @@ app = FastAPI(
 
 # 配置 CORS 中间件
 # 允许前端应用跨域访问 API
+# 开发环境下允许 localhost 相关的所有来源（包括 WebSocket）
 app.add_middleware(
     CORSMiddleware,
-    # 允许的源地址 (前端开发服务器)
-    allow_origins=["http://localhost:5173", "http://localhost:5174", "http://localhost:3000"],
+    # 使用正则表达式匹配所有 localhost 来源（支持 WebSocket）
+    allow_origin_regex=r"https?://localhost:\d+|ws://localhost:\d+",
     # 允许携带认证信息 (cookies, authorization headers)
     allow_credentials=True,
     # 允许所有 HTTP 方法
@@ -94,6 +97,20 @@ app.add_middleware(
 # 注册 API 路由
 # 所有 /api/* 路径的路由都来自 router
 app.include_router(router, prefix="/api")
+
+# 注册 WebSocket 路由（不在 /api 前缀下）
+# 使用 app.websocket 装饰器手动处理 WebSocket 连接
+@app.websocket("/ws/notifications")
+async def ws_notifications(websocket: WebSocket, client_id: str = "anonymous"):
+    """WebSocket 通知端点 - 绕过 router 的 CORS 检查"""
+    import urllib.parse
+    # 从 query string 中解析 client_id
+    query_string = urllib.parse.urlparse(str(websocket.url)).query
+    params = urllib.parse.parse_qs(query_string)
+    if "client_id" in params:
+        client_id = params["client_id"][0]
+    # 调用实际的处理函数
+    await websocket_notifications(websocket, client_id)
 
 
 @app.get("/")

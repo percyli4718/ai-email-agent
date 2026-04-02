@@ -734,7 +734,7 @@ class Notification(Base):
         related_id: Optional[str] 类型，关联 ID (可选)
             关联的邮件 ID、Agent 任务 ID 等
 
-        metadata: Optional[Dict] 类型，元数据 (可选)
+        extra_data: Optional[Dict] 类型，额外数据 (可选)
             额外的通知数据 (JSON 格式)
 
         created_at: datetime 类型，创建时间
@@ -755,7 +755,7 @@ class Notification(Base):
     level: Mapped[str] = mapped_column(String(20), nullable=False, default="info")
     is_read: Mapped[bool] = mapped_column(Boolean, default=False)
     related_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
-    metadata: Mapped[Optional[Dict]] = mapped_column(JSON, nullable=True)
+    extra_data: Mapped[Optional[Dict]] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
 
     def to_dict(self) -> dict:
@@ -768,7 +768,7 @@ class Notification(Base):
             "level": self.level,
             "is_read": self.is_read,
             "related_id": self.related_id,
-            "metadata": self.metadata,
+            "extra_data": self.extra_data,
             "created_at": self.created_at.isoformat() if self.created_at else None
         }
 
