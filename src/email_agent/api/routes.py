@@ -675,6 +675,42 @@ async def get_email_retrieval(email_id: str):
     )
 
 
+@router.get("/emails/classifications")
+async def get_email_classifications():
+    """
+    获取所有邮件的分类结果列表
+
+    返回:
+        包含所有邮件分类结果的列表
+    """
+    # 从数据库获取所有邮件
+    emails = await db.get_all_emails()
+
+    # 构建分类结果列表
+    classifications = []
+    for email in emails:
+        classification = email.get("classification", {})
+        if classification:
+            classifications.append({
+                "id": email.get("id"),
+                "email_id": email.get("id"),
+                "subject": email.get("subject", ""),
+                "from_address": email.get("from_address", ""),
+                "received_at": email.get("received_at", ""),
+                "type": classification.get("type", "other"),
+                "priority_score": classification.get("priority_score", 0),
+                "urgency": classification.get("urgency", "low"),
+                "language": classification.get("language", "en"),
+                "customer_region": classification.get("customer_region", "unknown"),
+                "requires_human": classification.get("requires_human", False),
+                "suggested_route": classification.get("suggested_route", "manual"),
+                "products_mentioned": classification.get("products_mentioned", []),
+                "status": email.get("status", "pending"),
+            })
+
+    return {"classifications": classifications, "total": len(classifications)}
+
+
 @router.get("/agents/status", response_model=AgentStatusResponse)
 async def get_agents_status():
     """获取 Agent 执行状态"""

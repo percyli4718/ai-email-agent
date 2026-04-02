@@ -10,6 +10,7 @@ import NotificationCenter, { type Notification } from './components/Notification
 import Approvals from './pages/Approvals';
 import Quotes from './pages/Quotes';
 import AgentMonitoring from './pages/AgentMonitoring';
+import Classifications from './pages/Classifications';
 import GenerateQuotePanel from './components/GenerateQuotePanel';
 import type { GeneratedEmail } from './types/generator';
 
@@ -68,7 +69,7 @@ const CURRENT_TRACE_ID = '2847';
 // ============================================================================
 
 const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'inbox' | 'agents' | 'metrics' | 'monitoring' | 'templates' | 'approvals' | 'quotes'>('inbox');
+  const [activeTab, setActiveTab] = useState<'inbox' | 'agents' | 'metrics' | 'monitoring' | 'templates' | 'approvals' | 'quotes' | 'classifications'>('inbox');
   const [selectedEmail, setSelectedEmail] = useState<string | null>(null);
   const [selectedApprovalId, setSelectedApprovalId] = useState<number | null>(null);
   const [selectedQuoteId, setSelectedQuoteId] = useState<string | null>(null);
@@ -159,6 +160,12 @@ const App: React.FC = () => {
               label="📋 报价 | Quotes"
               activeColor="text-[#14b8a6] border-[#14b8a6]"
             />
+            <TabButton
+              active={activeTab === 'classifications'}
+              onClick={() => setActiveTab('classifications')}
+              label="🏷️ 分类 | Classifications"
+              activeColor="text-[#f59e0b] border-[#f59e0b]"
+            />
           </div>
         </div>
       </nav>
@@ -196,6 +203,9 @@ const App: React.FC = () => {
             selectedQuoteId={selectedQuoteId}
             onQuoteViewed={() => setSelectedQuoteId(null)}
           />
+        )}
+        {activeTab === 'classifications' && (
+          <Classifications />
         )}
       </main>
     </div>
