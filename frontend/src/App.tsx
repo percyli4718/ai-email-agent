@@ -6,6 +6,7 @@ import { useAgentsStatus } from './hooks/useAgentsStatus';
 import { Email as ApiEmail, AnalysisSection, Metric, TraceSpan, PromptVersion, Agent } from './types/api';
 import GenerateEmailPanel from './components/GenerateEmailPanel';
 import TemplateEditor from './components/TemplateEditor';
+import NotificationCenter from './components/NotificationCenter';
 import type { GeneratedEmail } from './types/generator';
 
 // ============================================================================
@@ -87,6 +88,7 @@ const App: React.FC = () => {
               <p className="text-sm text-[#94a3b8] mt-1">医药分销自动化系统 | Pharmaceutical Distribution</p>
             </div>
             <div className="flex items-center gap-4">
+              <NotificationCenter />
               <div className="text-right">
                 <div className="text-xs text-[#64748b]">系统状态 | System Status</div>
                 <div className="text-sm text-[#10b981] font-medium">● 全部运行正常 | All Systems Operational</div>
