@@ -6,7 +6,8 @@ import { useAgentsStatus } from './hooks/useAgentsStatus';
 import { Email as ApiEmail, AnalysisSection, Metric, TraceSpan, PromptVersion, Agent } from './types/api';
 import GenerateEmailPanel from './components/GenerateEmailPanel';
 import TemplateEditor from './components/TemplateEditor';
-import NotificationCenter from './components/NotificationCenter';
+import NotificationCenter, { type Notification } from './components/NotificationCenter';
+import Approvals from './pages/Approvals';
 import type { GeneratedEmail } from './types/generator';
 
 // ============================================================================
@@ -64,8 +65,9 @@ const CURRENT_TRACE_ID = '2847';
 // ============================================================================
 
 const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'inbox' | 'agents' | 'metrics' | 'templates'>('inbox');
+  const [activeTab, setActiveTab] = useState<'inbox' | 'agents' | 'metrics' | 'templates' | 'approvals'>('inbox');
   const [selectedEmail, setSelectedEmail] = useState<string | null>(null);
+  const [selectedApprovalId, setSelectedApprovalId] = useState<number | null>(null);
 
   // Get refetch from useEmails hook
   const { refetch } = useEmails();
@@ -76,6 +78,17 @@ const App: React.FC = () => {
     // Trigger refresh of email list
     refetch();
   }, [refetch]);
+
+  // Handle notification click
+  const handleNotificationClick = useCallback((notification: Notification) => {
+    if (notification.type === 'approval_request' && notification.related_id) {
+      const approvalId = parseInt(notification.related_id, 10);
+      if (!isNaN(approvalId)) {
+        setSelectedApprovalId(approvalId);
+        setActiveTab('approvals');
+      }
+    }
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#0a0e1a] text-[#e2e8f0]">
@@ -88,7 +101,7 @@ const App: React.FC = () => {
               <p className="text-sm text-[#94a3b8] mt-1">医药分销自动化系统 | Pharmaceutical Distribution</p>
             </div>
             <div className="flex items-center gap-4">
-              <NotificationCenter />
+              <NotificationCenter onNotificationClick={handleNotificationClick} />
               <div className="text-right">
                 <div className="text-xs text-[#64748b]">系统状态 | System Status</div>
                 <div className="text-sm text-[#10b981] font-medium">● 全部运行正常 | All Systems Operational</div>
@@ -126,6 +139,12 @@ const App: React.FC = () => {
               label="📝 模板管理 | Templates"
               activeColor="text-[#10b981] border-[#10b981]"
             />
+            <TabButton
+              active={activeTab === 'approvals'}
+              onClick={() => setActiveTab('approvals')}
+              label="✅ 审批 | Approvals"
+              activeColor="text-[#ec4899] border-[#ec4899]"
+            />
           </div>
         </div>
       </nav>
@@ -147,6 +166,12 @@ const App: React.FC = () => {
         {activeTab === 'agents' && <AgentsTab />}
         {activeTab === 'metrics' && <MetricsTab />}
         {activeTab === 'templates' && <TemplateEditor onTemplateUpdated={() => {}} />}
+        {activeTab === 'approvals' && (
+          <Approvals
+            selectedApprovalId={selectedApprovalId}
+            onApprovalViewed={() => setSelectedApprovalId(null)}
+          />
+        )}
       </main>
     </div>
   );
