@@ -47,3 +47,39 @@ body {
 .font-sf-mono {
   font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
 }
+
+/* Hide scrollbar but keep functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Global scrollbar hide */
+body * {
+  -ms-overflow-style: none;
+  scrollbar-width: thin;
+  scrollbar-color: #334155 #1e293b;
+}
+
+body *::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+body *::-webkit-scrollbar-track {
+  background: #1e293b;
+  border-radius: 3px;
+}
+
+body *::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 3px;
+}
+
+body *::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}

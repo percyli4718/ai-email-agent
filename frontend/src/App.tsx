@@ -292,15 +292,15 @@ const InboxTab: React.FC<InboxTabProps> = ({
   };
 
   return (
-    <div className="grid grid-cols-12 gap-4 h-[calc(100vh-180px)]">
+    <div className="grid grid-cols-12 gap-4 h-[calc(100vh-140px)] overflow-hidden">
       {/* Left Column - Email List (3 columns) */}
       <div className="col-span-3 bg-[#1e293b] rounded-xl border border-[#334155] overflow-hidden flex flex-col">
-        <div className="px-4 py-3 border-b border-[#334155] flex items-center justify-between">
+        <div className="px-4 py-3 border-b border-[#334155] flex items-center justify-between flex-shrink-0">
           <h2 className="font-semibold text-[#e2e8f0]">📨 收件箱</h2>
           <span className="text-xs text-[#64748b]">{emails.length} 封邮件</span>
         </div>
 
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden">
           {isLoading ? (
             <EmailListSkeleton />
           ) : error ? (
@@ -341,7 +341,7 @@ const InboxTab: React.FC<InboxTabProps> = ({
             />
           </>
         ) : (
-          <div className="flex-1 flex items-center justify-center text-[#64748b]">
+          <div className="h-full flex items-center justify-center text-[#64748b]">
             <div className="text-center">
               <div className="text-4xl mb-3">👈</div>
               <div>选择一封邮件查看详情</div>
@@ -351,7 +351,7 @@ const InboxTab: React.FC<InboxTabProps> = ({
       </div>
 
       {/* Right Column - AI Analysis (4 columns) */}
-      <div className="col-span-4 space-y-4 overflow-y-auto">
+      <div className="col-span-4 space-y-4 overflow-y-auto overflow-x-hidden">
         {selectedEmail ? (
           <>
             {/* Quote Generation Panel */}
@@ -1126,7 +1126,7 @@ const EmailDetailContent: React.FC<EmailDetailContentProps> = ({
       </div>
 
       {/* Content Scroll Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-4 scrollbar-hide">
         {/* Workflow Timeline */}
         <WorkflowTimeline workflow={workflow} loading={!workflow} />
 
