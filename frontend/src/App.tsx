@@ -295,7 +295,7 @@ const InboxTab: React.FC<InboxTabProps> = ({
 
   return (
     <div className="grid grid-cols-12 gap-4 h-full">
-      {/* 左侧列 - 邮件列表（3 列） */}
+      {/* 左侧列 - 邮件列表（2.5 列） */}
       <div className="col-span-3 bg-[#1e293b] rounded-xl border border-[#334155] overflow-hidden flex flex-col min-h-0">
         <div className="px-4 py-3 border-b border-[#334155] flex items-center justify-between flex-shrink-0">
           <h2 className="font-semibold text-[#e2e8f0]">📨 收件箱</h2>
@@ -332,30 +332,19 @@ const InboxTab: React.FC<InboxTabProps> = ({
         </div>
       </div>
 
-      {/* 中间列 - 邮件详情（5 列） */}
-      <div className="col-span-5 bg-[#1e293b] rounded-xl border border-[#334155] overflow-hidden flex flex-col">
+      {/* 右侧列 - 邮件详情 + AI 分析 + 检索结果（9.5 列，上下滚动） */}
+      <div className="col-span-9 space-y-4 overflow-y-auto">
         {selectedEmail ? (
           <>
-            <EmailDetailContent
-              emailId={selectedEmail}
-              showRetrieval={showRetrieval}
-              onToggleRetrieval={onToggleRetrieval}
-            />
-          </>
-        ) : (
-          <div className="h-full flex items-center justify-center text-[#64748b]">
-            <div className="text-center">
-              <div className="text-4xl mb-3">👈</div>
-              <div>选择一封邮件查看详情</div>
+            {/* 邮件详情 */}
+            <div className="bg-[#1e293b] rounded-xl border border-[#334155] overflow-hidden">
+              <EmailDetailContent
+                emailId={selectedEmail}
+                showRetrieval={showRetrieval}
+                onToggleRetrieval={onToggleRetrieval}
+              />
             </div>
-          </div>
-        )}
-      </div>
 
-      {/* 右侧列 - AI 分析（4 列） */}
-      <div className="col-span-4 space-y-4 overflow-y-auto overflow-x-hidden">
-        {selectedEmail ? (
-          <>
             {/* 报价生成面板 */}
             <GenerateQuotePanel emailId={selectedEmail} onQuoteGenerated={handleQuoteGenerated} />
 
@@ -368,12 +357,16 @@ const InboxTab: React.FC<InboxTabProps> = ({
                   delay={index * 100}
                 />
               ))
-            ) : (
-              <EmptyState message="暂无分析数据" />
-            )}
+            ) : null}
           </>
         ) : (
-          <EmptyState message="选择邮件查看 AI 分析" />
+          <div className="h-96 flex items-center justify-center text-[#64748b] bg-[#1e293b] rounded-xl border border-[#334155]">
+            <div className="text-center">
+              <div className="text-6xl mb-4">👈</div>
+              <div className="text-xl font-medium">选择一封邮件查看详情</div>
+              <div className="text-sm mt-2">左侧列表选择邮件后，右侧将显示详情、AI 分析结果和检索上下文</div>
+            </div>
+          </div>
         )}
       </div>
     </div>
