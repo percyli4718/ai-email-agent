@@ -1,0 +1,87 @@
+[
+  {
+    "id": "sample_001",
+    "input": {
+      "subject": "Request for Quote - Paracetamol 500mg",
+      "body": "Dear Supplier,\n\nWe are interested in purchasing 1000 boxes of Paracetamol 500mg. Please provide your best price for FOB Shanghai.\n\nBest regards,\nJohn Smith"
+    },
+    "expected": {
+      "type": "inquiry",
+      "priority_score": 0.75,
+      "urgency": "medium",
+      "language": "en",
+      "products_mentioned": ["Paracetamol 500mg"],
+      "customer_region": "Europe",
+      "requires_human": false,
+      "suggested_route": "quote_flow"
+    }
+  },
+  {
+    "id": "sample_002",
+    "input": {
+      "subject": "URGENT: Quality Issue with Batch #12345",
+      "body": "We have received complaints from our customers about the quality of batch #12345. The tablets are crumbling. This is extremely urgent and requires immediate attention!"
+    },
+    "expected": {
+      "type": "complaint",
+      "priority_score": 0.95,
+      "urgency": "high",
+      "language": "en",
+      "products_mentioned": [],
+      "customer_region": "unknown",
+      "requires_human": true,
+      "suggested_route": "complaint_flow"
+    }
+  },
+  {
+    "id": "sample_003",
+    "input": {
+      "subject": "Order Status Inquiry - PO#98765",
+      "body": "Hello,\n\nCould you please provide an update on our order PO#98765? It was placed 2 weeks ago and we haven't received any shipping notification yet.\n\nThank you,\nMaria Garcia"
+    },
+    "expected": {
+      "type": "status_check",
+      "priority_score": 0.6,
+      "urgency": "medium",
+      "language": "en",
+      "products_mentioned": [],
+      "customer_region": "South America",
+      "requires_human": false,
+      "suggested_route": "status_flow"
+    }
+  },
+  {
+    "id": "sample_004",
+    "input": {
+      "subject": "RFQ: Amoxicillin 500mg - 5000 boxes",
+      "body": "Dear Team,\n\nPlease quote your best price for:\n- Amoxicillin 500mg: 5000 boxes\n- Destination: Brazil\n- Payment: 30% advance, 70% against B/L\n\nLooking forward to your prompt response."
+    },
+    "expected": {
+      "type": "inquiry",
+      "priority_score": 0.9,
+      "urgency": "high",
+      "language": "en",
+      "products_mentioned": ["Amoxicillin 500mg"],
+      "customer_region": "South America",
+      "requires_human": false,
+      "suggested_route": "quote_flow"
+    }
+  },
+  {
+    "id": "sample_005",
+    "input": {
+      "subject": "Re: Partnership Opportunity",
+      "body": "Thank you for your interest. We would like to schedule a call to discuss the distribution partnership for the Asian market."
+    },
+    "expected": {
+      "type": "other",
+      "priority_score": 0.5,
+      "urgency": "low",
+      "language": "en",
+      "products_mentioned": [],
+      "customer_region": "Asia",
+      "requires_human": true,
+      "suggested_route": "general_flow"
+    }
+  }
+]
