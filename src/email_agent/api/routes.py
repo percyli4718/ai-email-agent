@@ -16,9 +16,9 @@ API 路由模块
     依赖 schemas.py 定义数据模式，
     依赖 observability 模块获取指标和追踪数据。
 """
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, Query
 from fastapi.responses import Response
-from typing import List
+from typing import List, Dict, Any
 from datetime import datetime
 
 from email_agent.api.schemas import (
@@ -705,6 +705,108 @@ async def get_metrics_prometheus():
 async def get_traces(limit: int = 10):
     """获取最近的追踪记录"""
     return tracer.get_recent_traces(limit)
+
+
+# ==================== 通知系统端点 ====================
+
+
+class ConnectionManager:
+    """WebSocket 连接管理器"""
+
+    def __init__(self):
+        self.active_connections: Dict[str, WebSocket] = {}
+
+    async def connect(self, websocket: WebSocket, client_id: str):
+        """接受 WebSocket 连接"""
+        await websocket.accept()
+        self.active_connections[client_id] = websocket
+
+    def disconnect(self, client_id: str):
+        """断开 WebSocket 连接"""
+        if client_id in self.active_connections:
+            del self.active_connections[client_id]
+
+    async def send_personal_message(self, message: dict, client_id: str):
+        """发送个人消息"""
+        if client_id in self.active_connections:
+            try:
+                await self.active_connections[client_id].send_json(message)
+            except Exception:
+                self.disconnect(client_id)
+
+    async def broadcast(self, message: dict):
+        """广播消息给所有连接"""
+        disconnected = []
+        for client_id, connection in self.active_connections.items():
+            try:
+                await connection.send_json(message)
+            except Exception:
+                disconnected.append(client_id)
+        for client_id in disconnected:
+            self.disconnect(client_id)
+
+
+# 创建连接管理器实例
+manager = ConnectionManager()
+
+
+@router.websocket("/ws/notifications")
+async def websocket_notifications(websocket: WebSocket, client_id: str = Query(default="anonymous")):
+    """
+    WebSocket 通知端点
+
+    功能描述:
+        建立实时通知连接，推送邮件处理状态、Agent 执行进度等事件。
+
+    参数:
+        client_id: str 类型，客户端唯一标识
+
+    使用场景:
+        - 前端建立 WebSocket 连接接收实时通知
+        - 系统推送邮件处理状态变更
+        - 推送 Agent 执行进度
+    """
+    await manager.connect(websocket, client_id)
+    try:
+        while True:
+            # 接收客户端消息（心跳等）
+            data = await websocket.receive_text()
+            # 可以处理客户端消息
+    except WebSocketDisconnect:
+        manager.disconnect(client_id)
+
+
+@router.get("/notifications")
+async def get_notifications(limit: int = 50, unread_only: bool = False):
+    """
+    获取通知列表
+
+    参数:
+        limit: int 类型，返回数量限制
+        unread_only: bool 类型，是否只返回未读
+
+    返回:
+        通知列表
+    """
+    notifications = await db.get_notifications(limit=limit, unread_only=unread_only)
+    return {"notifications": notifications, "total": len(notifications)}
+
+
+@router.post("/notifications/{notification_id}/read")
+async def mark_notification_read(notification_id: int):
+    """
+    标记通知为已读
+
+    参数:
+        notification_id: int 类型，通知 ID
+
+    返回:
+        操作结果
+    """
+    success = await db.mark_notification_read(notification_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    return {"message": "Notification marked as read"}
 
 
 # ==================== 健康检查端点 ====================

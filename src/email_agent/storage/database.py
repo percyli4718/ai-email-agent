@@ -30,7 +30,7 @@ from sqlalchemy import select
 
 from email_agent.config import Settings
 from email_agent.logging_config import get_logger
-from email_agent.storage.models import Customer, PricingPolicy, ComplianceRequirement, EmailAnalysis
+from email_agent.storage.models import Customer, PricingPolicy, ComplianceRequirement, EmailAnalysis, Notification
 
 # 获取当前模块的日志记录器
 logger = get_logger(__name__)
@@ -906,6 +906,123 @@ class Database:
                 return True
 
             logger.warning("email_not_found_for_status_update", email_id=email_id)
+            return False
+
+    async def create_notification(
+        self,
+        type: str,
+        title: str,
+        message: str,
+        level: str = "info",
+        related_id: Optional[str] = None,
+        metadata: Optional[dict] = None
+    ) -> dict:
+        """
+        创建通知记录
+
+        功能描述:
+            在数据库中创建新的通知记录。
+
+        参数:
+            type: str 类型，通知类型
+                email_status/agent_progress/approval_request/system
+            title: str 类型，通知标题
+            message: str 类型，通知消息
+            level: str 类型，通知级别，默认 "info"
+                info/success/warning/error
+            related_id: str 类型，可选，关联 ID
+            metadata: dict 类型，可选，元数据
+
+        返回值:
+            dict: 创建的通知记录字典
+
+        使用示例:
+            await db.create_notification(
+                type="email_status",
+                title="邮件处理完成",
+                message="邮件 email_001 已完成处理",
+                level="success",
+                related_id="email_001"
+            )
+        """
+        from email_agent.storage.models import Notification
+        from sqlalchemy import insert, select
+
+        async with self.session() as session:
+            stmt = insert(Notification).values(
+                type=type,
+                title=title,
+                message=message,
+                level=level,
+                related_id=related_id,
+                metadata=metadata
+            )
+            result = await session.execute(stmt)
+            await session.commit()
+
+            notification_id = result.inserted_primary_key[0]
+
+            stmt = select(Notification).where(Notification.id == notification_id)
+            result = await session.execute(stmt)
+            notification = result.scalar_one_or_none()
+
+            return notification.to_dict() if notification else {}
+
+    async def get_notifications(self, limit: int = 50, unread_only: bool = False) -> list:
+        """
+        获取通知列表
+
+        功能描述:
+            查询通知列表，支持按未读状态过滤。
+
+        参数:
+            limit: int 类型，返回数量上限，默认 50
+            unread_only: bool 类型，是否只返回未读，默认 False
+
+        返回值:
+            list: 通知列表
+        """
+        from email_agent.storage.models import Notification
+        from sqlalchemy import select
+
+        async with self.session() as session:
+            stmt = select(Notification)
+            if unread_only:
+                stmt = stmt.where(Notification.is_read == False)
+            stmt = stmt.order_by(Notification.created_at.desc()).limit(limit)
+
+            result = await session.execute(stmt)
+            notifications = result.scalars().all()
+
+            return [notification.to_dict() for notification in notifications]
+
+    async def mark_notification_read(self, notification_id: int) -> bool:
+        """
+        标记通知为已读
+
+        功能描述:
+            更新通知的已读状态。
+
+        参数:
+            notification_id: int 类型，通知 ID
+
+        返回值:
+            bool: 是否成功更新
+        """
+        from email_agent.storage.models import Notification
+        from sqlalchemy import select, update
+
+        async with self.session() as session:
+            stmt = select(Notification).where(Notification.id == notification_id)
+            result = await session.execute(stmt)
+            notification = result.scalar_one_or_none()
+
+            if notification:
+                stmt = update(Notification).where(Notification.id == notification_id).values(is_read=True)
+                await session.execute(stmt)
+                await session.commit()
+                return True
+
             return False
 
 

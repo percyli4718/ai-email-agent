@@ -697,6 +697,86 @@ class EmailTemplate(Base):
         return f"<EmailTemplate(id={self.id}, type='{self.type}', product='{self.product_name}', region='{self.region}')>"
 
 
+# ============================================================================
+# Notification Model - 通知模型
+# ============================================================================
+
+
+class Notification(Base):
+    """
+    通知模型
+
+    作用:
+        存储系统通知记录。
+        用于邮件处理状态、Agent 执行进度、审批请求等通知。
+
+    表名：notifications
+
+    字段说明:
+        id: int 类型，主键 (自增)
+            通知唯一标识符
+
+        type: str 类型，通知类型
+            email_status/agent_progress/approval_request/system
+
+        title: str 类型，通知标题
+            通知的简短标题
+
+        message: str 类型，通知消息
+            通知的详细内容
+
+        level: str 类型，通知级别
+            info/success/warning/error
+
+        is_read: bool 类型，是否已读
+            控制通知的已读状态
+
+        related_id: Optional[str] 类型，关联 ID (可选)
+            关联的邮件 ID、Agent 任务 ID 等
+
+        metadata: Optional[Dict] 类型，元数据 (可选)
+            额外的通知数据 (JSON 格式)
+
+        created_at: datetime 类型，创建时间
+            通知创建时间
+
+    使用场景:
+        - 存储邮件处理状态变更通知
+        - 存储 Agent 执行进度通知
+        - 存储审批请求通知
+        - 前端通知中心数据源
+    """
+    __tablename__ = "notifications"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    type: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    level: Mapped[str] = mapped_column(String(20), nullable=False, default="info")
+    is_read: Mapped[bool] = mapped_column(Boolean, default=False)
+    related_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+    metadata: Mapped[Optional[Dict]] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+    def to_dict(self) -> dict:
+        """转换为字典"""
+        return {
+            "id": self.id,
+            "type": self.type,
+            "title": self.title,
+            "message": self.message,
+            "level": self.level,
+            "is_read": self.is_read,
+            "related_id": self.related_id,
+            "metadata": self.metadata,
+            "created_at": self.created_at.isoformat() if self.created_at else None
+        }
+
+    def __repr__(self) -> str:
+        """返回通知的字符串表示，用于调试"""
+        return f"<Notification(id={self.id}, type='{self.type}', title='{self.title}')>"
+
+
 # ==================== 数据库初始化辅助函数 ====================
 
 async def init_db_tables(engine) -> None:
