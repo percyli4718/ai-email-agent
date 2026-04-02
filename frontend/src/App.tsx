@@ -106,7 +106,7 @@ const App: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#0a0e1a] text-[#e2e8f0]">
+    <div className="h-screen bg-[#0a0e1a] text-[#e2e8f0] overflow-hidden">
       {/* Header */}
       <header className="bg-[#1e293b] border-b border-[#334155] sticky top-0 z-30">
         <div className="max-w-[1920px] mx-auto px-6 py-4">
@@ -136,7 +136,7 @@ const App: React.FC = () => {
       </header>
 
       {/* Navigation */}
-      <nav className="bg-[#1e293b] border-b border-[#334155] sticky top-[73px] z-20">
+      <nav className="bg-[#1e293b] border-b border-[#334155] flex-shrink-0">
         <div className="max-w-[1920px] mx-auto px-6">
           <div className="flex space-x-1">
             <TabButton
@@ -186,7 +186,8 @@ const App: React.FC = () => {
       </nav>
 
       {/* Main Content - Three Column Layout */}
-      <main className="max-w-[1920px] mx-auto px-6 py-6">
+      <main className="flex-1 overflow-hidden">
+        <div className="h-full px-6 py-6">
         {activeTab === 'inbox' && (
           <InboxTab
             selectedEmail={selectedEmail}
@@ -218,6 +219,7 @@ const App: React.FC = () => {
         {activeTab === 'classifications' && (
           <Classifications />
         )}
+        </div>
       </main>
 
       {/* Generate Email Drawer */}
@@ -292,9 +294,9 @@ const InboxTab: React.FC<InboxTabProps> = ({
   };
 
   return (
-    <div className="grid grid-cols-12 gap-4 h-[calc(100vh-140px)] overflow-hidden">
+    <div className="grid grid-cols-12 gap-4 h-full">
       {/* Left Column - Email List (3 columns) */}
-      <div className="col-span-3 bg-[#1e293b] rounded-xl border border-[#334155] overflow-hidden flex flex-col">
+      <div className="col-span-3 bg-[#1e293b] rounded-xl border border-[#334155] overflow-hidden flex flex-col min-h-0">
         <div className="px-4 py-3 border-b border-[#334155] flex items-center justify-between flex-shrink-0">
           <h2 className="font-semibold text-[#e2e8f0]">📨 收件箱</h2>
           <span className="text-xs text-[#64748b]">{emails.length} 封邮件</span>
@@ -1126,7 +1128,7 @@ const EmailDetailContent: React.FC<EmailDetailContentProps> = ({
       </div>
 
       {/* Content Scroll Area */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-4 scrollbar-hide">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {/* Workflow Timeline */}
         <WorkflowTimeline workflow={workflow} loading={!workflow} />
 
