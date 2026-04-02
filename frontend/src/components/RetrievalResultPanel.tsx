@@ -28,7 +28,9 @@ export interface RetrievalResultPanelProps {
 const SimilarEmailCard: React.FC<{
   email: SimilarEmail;
   index: number;
-}> = ({ email, index }) => {
+  isExpanded: boolean;
+  onToggle: () => void;
+}> = ({ email, index, isExpanded, onToggle }) => {
   const similarityPercent = Math.round((1 - (email.similarity || 0)) * 100);
 
   return (
@@ -42,15 +44,23 @@ const SimilarEmailCard: React.FC<{
             {email.metadata?.region || 'Unknown'}
           </span>
         </div>
-        <span className={`text-xs font-bold px-2 py-1 rounded ${
-          similarityPercent >= 80 ? 'text-green-700 bg-green-100' :
-          similarityPercent >= 60 ? 'text-yellow-700 bg-yellow-100' :
-          'text-gray-700 bg-gray-100'
-        }`}>
-          {similarityPercent}% 相似
-        </span>
+        <div className="flex items-center gap-2">
+          <span className={`text-xs font-bold px-2 py-1 rounded ${
+            similarityPercent >= 80 ? 'text-green-700 bg-green-100' :
+            similarityPercent >= 60 ? 'text-yellow-700 bg-yellow-100' :
+            'text-gray-700 bg-gray-100'
+          }`}>
+            {similarityPercent}% 相似
+          </span>
+          <button
+            onClick={onToggle}
+            className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+          >
+            {isExpanded ? '收起' : '展开'}
+          </button>
+        </div>
       </div>
-      <p className="text-sm text-gray-700 line-clamp-3 mb-2">
+      <p className={`text-sm text-gray-700 mb-2 ${isExpanded ? '' : 'line-clamp-3'}`}>
         {email.content}
       </p>
       {email.metadata?.type && (
@@ -61,7 +71,6 @@ const SimilarEmailCard: React.FC<{
     </div>
   );
 };
-
 /**
  * 相似邮件列表
  */
@@ -71,12 +80,22 @@ const SimilarEmailsSection: React.FC<{
   distances?: number[];
   ids?: string[];
 }> = ({ documents, metadatas, distances, ids }) => {
+  const [expandedEmails, setExpandedEmails] = useState<number[]>([]);
+
   const emails: SimilarEmail[] = documents.map((content, index) => ({
     id: ids?.[index] || `email_${index}`,
     content,
     similarity: distances ? 1 - distances[index] : 0.5,
     metadata: metadatas[index] || {},
   }));
+
+  const toggleExpand = (index: number) => {
+    setExpandedEmails(prev =>
+      prev.includes(index)
+        ? prev.filter(i => i !== index)
+        : [...prev, index]
+    );
+  };
 
   if (!documents || documents.length === 0) {
     return (
@@ -92,7 +111,13 @@ const SimilarEmailsSection: React.FC<{
   return (
     <div className="space-y-3">
       {emails.map((email, index) => (
-        <SimilarEmailCard key={email.id} email={email} index={index} />
+        <SimilarEmailCard
+          key={email.id}
+          email={email}
+          index={index}
+          isExpanded={expandedEmails.includes(index)}
+          onToggle={() => toggleExpand(index)}
+        />
       ))}
     </div>
   );
@@ -251,7 +276,7 @@ const CustomerHistoryCard: React.FC<{
  */
 export const RetrievalResultPanel: React.FC<RetrievalResultPanelProps> = ({ emailId }) => {
   const { data, isLoading, error } = useRetrievalResult(emailId);
-  const [activeTab, setActiveTab] = useState<'overview' | 'pricing' | 'compliance' | 'similar'>('overview');
+  const [activeTab, setActiveTab] = useState<'pricing' | 'overview' | 'compliance' | 'similar'>('pricing');
 
   if (isLoading) {
     return (
@@ -279,8 +304,8 @@ export const RetrievalResultPanel: React.FC<RetrievalResultPanelProps> = ({ emai
   }
 
   const tabs = [
-    { id: 'overview', label: '概览', icon: '📊' },
     { id: 'pricing', label: '定价政策', icon: '💰' },
+    { id: 'overview', label: '概览', icon: '📊' },
     { id: 'compliance', label: '合规要求', icon: '✅' },
     { id: 'similar', label: '相似邮件', icon: '📧' },
   ] as const;
@@ -291,7 +316,7 @@ export const RetrievalResultPanel: React.FC<RetrievalResultPanelProps> = ({ emai
       <div className="px-4 py-3 bg-gradient-to-r from-indigo-50 to-purple-50 border-b border-gray-200">
         <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
           <span>🔍</span>
-          Layer 2: 上下文检索结果 | Context Retrieval
+          Layer 2: 上下文检索结果
         </h3>
       </div>
 
@@ -322,57 +347,47 @@ export const RetrievalResultPanel: React.FC<RetrievalResultPanelProps> = ({ emai
             <section>
               <h4 className="text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
                 <span>👤</span>
-                客户历史 | Customer History
+                客户历史
               </h4>
               <CustomerHistoryCard customer={data.customer_history} />
             </section>
 
-            {/* Pricing Summary */}
+            {/* Pricing Policy - Full List in Overview */}
             <section>
               <h4 className="text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
                 <span>💰</span>
-                定价政策摘要 | Pricing Summary
+                定价政策
               </h4>
-              <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">区域：{data.pricing_policy.region}</span>
-                  <span className="text-gray-800 font-medium">
-                    {data.pricing_policy.policies.length} 个产品
-                  </span>
-                </div>
-              </div>
+              <PricingPolicyTable
+                policies={data.pricing_policy.policies}
+                region={data.pricing_policy.region}
+              />
             </section>
 
-            {/* Compliance Summary */}
+            {/* Compliance Requirements - Full List in Overview */}
             <section>
               <h4 className="text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
                 <span>✅</span>
-                合规要求摘要 | Compliance Summary
+                合规要求
               </h4>
-              <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">区域：{data.compliance.region}</span>
-                  <span className="text-gray-800 font-medium">
-                    {data.compliance.requirements.length} 项要求
-                  </span>
-                </div>
-                {data.compliance.requirements.some(r => r.mandatory) && (
-                  <div className="mt-2 text-xs text-red-600 font-medium">
-                    ⚠️ 包含必需合规要求
-                  </div>
-                )}
-              </div>
+              <ComplianceRequirementsSection
+                requirements={data.compliance.requirements}
+                region={data.compliance.region}
+              />
             </section>
 
             {/* Similar Emails Summary */}
             <section>
               <h4 className="text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
                 <span>📧</span>
-                相似邮件 | Similar Emails
+                相似邮件
               </h4>
               <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
                 <p className="text-sm text-gray-700">
                   找到 {data.similar_emails.documents.length} 封相似历史邮件
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  点击"相似邮件"标签查看完整内容
                 </p>
               </div>
             </section>
