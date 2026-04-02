@@ -575,19 +575,20 @@ async def delete_template(template_id: int):
 
 
 @router.get("/emails", response_model=EmailListResponse)
-async def list_emails(status: str = "all", limit: int = 50):
+async def list_emails(status: str = "all", limit: int = 20, offset: int = 0):
     """
-    获取邮件列表
+    获取邮件列表（支持分页）
 
     参数:
         status: str 类型，过滤状态 (默认"all")
-        limit: int 类型，返回数量限制 (默认 50)
+        limit: int 类型，返回数量限制 (默认 20)
+        offset: int 类型，偏移量 (默认 0)
 
     返回:
         EmailListResponse: 包含 emails 列表和 total 总数
     """
     # 从数据库获取邮件列表
-    emails = await db.get_all_emails(limit=limit)
+    emails = await db.get_all_emails(limit=limit, offset=offset)
 
     # 状态过滤
     if status != "all":

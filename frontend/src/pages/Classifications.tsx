@@ -8,7 +8,7 @@
  */
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { API_BASE_URL, Email } from '../types/api';
+import { API_BASE_URL } from '../types/api';
 
 // ============================================================================
 // Types
@@ -37,7 +37,6 @@ interface ClassificationsResponse {
 }
 
 type FilterType = 'all' | 'inquiry' | 'complaint' | 'question' | 'contract' | 'other';
-type FilterPriority = 'all' | 'high' | 'medium' | 'low';
 type FilterRoute = 'all' | 'quote_flow' | 'complaint_flow' | 'auto_reply' | 'manual';
 
 // ============================================================================

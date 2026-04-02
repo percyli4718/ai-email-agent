@@ -103,8 +103,8 @@ const SimilarEmailsSection: React.FC<{
  */
 const PricingPolicyTable: React.FC<{
   policies: PricingPolicy[];
-  region: string;
-}> = ({ policies, region }) => {
+  region?: string;
+}> = ({ policies }) => {
   if (!policies || policies.length === 0) {
     return (
       <div className="text-center py-4 text-gray-400">
@@ -154,8 +154,8 @@ const PricingPolicyTable: React.FC<{
  */
 const ComplianceRequirementsSection: React.FC<{
   requirements: ComplianceRequirement[];
-  region: string;
-}> = ({ requirements, region }) => {
+  region?: string;
+}> = ({ requirements }) => {
   if (!requirements || requirements.length === 0) {
     return (
       <div className="text-center py-4 text-gray-400">

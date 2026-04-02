@@ -635,15 +635,16 @@ class Database:
                 "region": destination
             }
 
-    async def get_all_emails(self, limit: int = 50) -> list:
+    async def get_all_emails(self, limit: int = 50, offset: int = 0) -> list:
         """
-        获取所有邮件列表
+        获取所有邮件列表（支持分页）
 
         功能描述:
             查询数据库中的所有邮件，按接收时间倒序排列。
 
         参数:
             limit: int 类型，返回数量上限，默认 50
+            offset: int 类型，偏移量，默认 0
 
         返回值:
             list: 邮件列表
@@ -651,7 +652,7 @@ class Database:
         from email_agent.storage.models import Email
 
         async with self.session() as session:
-            stmt = select(Email).order_by(Email.received_at.desc()).limit(limit)
+            stmt = select(Email).order_by(Email.received_at.desc()).offset(offset).limit(limit)
             result = await session.execute(stmt)
             emails = result.scalars().all()
 

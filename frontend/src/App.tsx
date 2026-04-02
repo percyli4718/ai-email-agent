@@ -1,10 +1,10 @@
 import React, { useState, useCallback } from 'react';
-import { useEmails } from './hooks/useEmails';
+import { useEmails, useEmailsInfinite } from './hooks/useEmails';
 import { useEmailAnalysis } from './hooks/useEmailAnalysis';
 import { useMetrics, useTraces, usePromptVersions, usePrometheusMetrics } from './hooks';
 import { useAgentsStatus } from './hooks/useAgentsStatus';
 import { Email as ApiEmail, AnalysisSection, Metric, TraceSpan, PromptVersion, Agent } from './types/api';
-import GenerateEmailPanel from './components/GenerateEmailPanel';
+import GenerateEmailDrawer from './components/GenerateEmailDrawer';
 import TemplateEditor from './components/TemplateEditor';
 import NotificationCenter, { type Notification } from './components/NotificationCenter';
 import Approvals from './pages/Approvals';
@@ -12,6 +12,9 @@ import Quotes from './pages/Quotes';
 import AgentMonitoring from './pages/AgentMonitoring';
 import Classifications from './pages/Classifications';
 import GenerateQuotePanel from './components/GenerateQuotePanel';
+import { RetrievalResultPanel } from './components/RetrievalResultPanel';
+import { WorkflowTimeline } from './components/WorkflowTimeline';
+import { useWorkflow } from './hooks/useWorkflow';
 import type { GeneratedEmail } from './types/generator';
 
 // ============================================================================
@@ -73,6 +76,8 @@ const App: React.FC = () => {
   const [selectedEmail, setSelectedEmail] = useState<string | null>(null);
   const [selectedApprovalId, setSelectedApprovalId] = useState<number | null>(null);
   const [selectedQuoteId, setSelectedQuoteId] = useState<string | null>(null);
+  const [showGenerateDrawer, setShowGenerateDrawer] = useState(false);
+  const [showRetrieval, setShowRetrieval] = useState(false);
 
   // Get refetch from useEmails hook
   const { refetch } = useEmails();
@@ -82,6 +87,7 @@ const App: React.FC = () => {
     console.log('新邮件已生成:', emails);
     // Trigger refresh of email list
     refetch();
+    setShowGenerateDrawer(false);
   }, [refetch]);
 
   // Handle notification click
@@ -102,18 +108,27 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#0a0e1a] text-[#e2e8f0]">
       {/* Header */}
-      <header className="bg-[#1e293b] border-b border-[#334155]">
-        <div className="max-w-7xl mx-auto px-6 py-5">
+      <header className="bg-[#1e293b] border-b border-[#334155] sticky top-0 z-30">
+        <div className="max-w-[1920px] mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-[#60a5fa]">📧 AI Email Agent · 智能邮件代理</h1>
-              <p className="text-sm text-[#94a3b8] mt-1">医药分销自动化系统 | Pharmaceutical Distribution</p>
+            <div className="flex items-center gap-4">
+              <div>
+                <h1 className="text-xl font-bold text-[#60a5fa]">📧 AI Email Agent</h1>
+                <p className="text-xs text-[#94a3b8]">医药分销自动化系统</p>
+              </div>
             </div>
             <div className="flex items-center gap-4">
+              <button
+                onClick={() => setShowGenerateDrawer(true)}
+                className="flex items-center gap-2 bg-gradient-to-r from-[#3b82f6] to-[#2563eb] hover:from-[#2563eb] hover:to-[#1d4ed8] text-white px-4 py-2 rounded-lg font-medium transition-all shadow-lg hover:shadow-[#3b82f6]/25"
+              >
+                <span>✨</span>
+                生成邮件
+              </button>
               <NotificationCenter onNotificationClick={handleNotificationClick} />
-              <div className="text-right">
-                <div className="text-xs text-[#64748b]">系统状态 | System Status</div>
-                <div className="text-sm text-[#10b981] font-medium">● 全部运行正常 | All Systems Operational</div>
+              <div className="text-right hidden lg:block">
+                <div className="text-xs text-[#64748b]">系统状态</div>
+                <div className="text-sm text-[#10b981] font-medium">● 运行正常</div>
               </div>
             </div>
           </div>
@@ -121,72 +136,68 @@ const App: React.FC = () => {
       </header>
 
       {/* Navigation */}
-      <nav className="bg-[#1e293b] border-b border-[#334155]">
-        <div className="max-w-7xl mx-auto px-6">
+      <nav className="bg-[#1e293b] border-b border-[#334155] sticky top-[73px] z-20">
+        <div className="max-w-[1920px] mx-auto px-6">
           <div className="flex space-x-1">
             <TabButton
               active={activeTab === 'inbox'}
               onClick={() => setActiveTab('inbox')}
-              label="📨 收件箱 | Inbox"
+              label="📨 收件箱"
               activeColor="text-[#60a5fa] border-[#60a5fa]"
             />
             <TabButton
-              active={activeTab === 'agents'}
-              onClick={() => setActiveTab('agents')}
-              label="🤖 Agent 监控 | Agents"
-              activeColor="text-[#f97316] border-[#f97316]"
-            />
-            <TabButton
-              active={activeTab === 'metrics'}
-              onClick={() => setActiveTab('metrics')}
-              label="📊 指标 | Metrics"
-              activeColor="text-[#a855f7] border-[#a855f7]"
-            />
-            <TabButton
-              active={activeTab === 'templates'}
-              onClick={() => setActiveTab('templates')}
-              label="📝 模板管理 | Templates"
-              activeColor="text-[#10b981] border-[#10b981]"
+              active={activeTab === 'classifications'}
+              onClick={() => setActiveTab('classifications')}
+              label="🏷️ 分类"
+              activeColor="text-[#f59e0b] border-[#f59e0b]"
             />
             <TabButton
               active={activeTab === 'approvals'}
               onClick={() => setActiveTab('approvals')}
-              label="✅ 审批 | Approvals"
+              label="✅ 审批"
               activeColor="text-[#ec4899] border-[#ec4899]"
             />
             <TabButton
               active={activeTab === 'quotes'}
               onClick={() => setActiveTab('quotes')}
-              label="📋 报价 | Quotes"
+              label="📋 报价"
               activeColor="text-[#14b8a6] border-[#14b8a6]"
             />
             <TabButton
-              active={activeTab === 'classifications'}
-              onClick={() => setActiveTab('classifications')}
-              label="🏷️ 分类 | Classifications"
-              activeColor="text-[#f59e0b] border-[#f59e0b]"
+              active={activeTab === 'agents'}
+              onClick={() => setActiveTab('agents')}
+              label="🤖 Agent"
+              activeColor="text-[#f97316] border-[#f97316]"
+            />
+            <TabButton
+              active={activeTab === 'metrics'}
+              onClick={() => setActiveTab('metrics')}
+              label="📊 指标"
+              activeColor="text-[#a855f7] border-[#a855f7]"
+            />
+            <TabButton
+              active={activeTab === 'templates'}
+              onClick={() => setActiveTab('templates')}
+              label="📝 模板"
+              activeColor="text-[#10b981] border-[#10b981]"
             />
           </div>
         </div>
       </nav>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 py-6">
+      {/* Main Content - Three Column Layout */}
+      <main className="max-w-[1920px] mx-auto px-6 py-6">
         {activeTab === 'inbox' && (
-          <div>
-            <div className="mb-4 flex justify-between items-center">
-              <h2 className="text-xl font-bold text-[#e2e8f0]">📨 收件箱 | Inbox</h2>
-              <GenerateEmailPanel onEmailsGenerated={handleNewEmailsGenerated} />
-            </div>
-            <InboxTab
-              selectedEmail={selectedEmail}
-              onSelectEmail={setSelectedEmail}
-              onQuoteGenerated={(quoteId: string) => {
-                setSelectedQuoteId(quoteId);
-                setActiveTab('quotes');
-              }}
-            />
-          </div>
+          <InboxTab
+            selectedEmail={selectedEmail}
+            onSelectEmail={setSelectedEmail}
+            onQuoteGenerated={(quoteId: string) => {
+              setSelectedQuoteId(quoteId);
+              setActiveTab('quotes');
+            }}
+            showRetrieval={showRetrieval}
+            onToggleRetrieval={() => setShowRetrieval(!showRetrieval)}
+          />
         )}
         {activeTab === 'agents' && <AgentsTab />}
         {activeTab === 'metrics' && <MetricsTab />}
@@ -208,6 +219,13 @@ const App: React.FC = () => {
           <Classifications />
         )}
       </main>
+
+      {/* Generate Email Drawer */}
+      <GenerateEmailDrawer
+        isOpen={showGenerateDrawer}
+        onClose={() => setShowGenerateDrawer(false)}
+        onEmailsGenerated={handleNewEmailsGenerated}
+      />
     </div>
   );
 };
@@ -237,57 +255,123 @@ const TabButton: React.FC<TabButtonProps> = ({ active, onClick, label, activeCol
 );
 
 // ============================================================================
-// Inbox Tab Component
+// Inbox Tab Component - Three Column Layout
 // ============================================================================
 
 interface InboxTabProps {
   selectedEmail: string | null;
   onSelectEmail: (id: string | null) => void;
   onQuoteGenerated?: (quoteId: string) => void;
+  showRetrieval: boolean;
+  onToggleRetrieval: () => void;
 }
 
-const InboxTab: React.FC<InboxTabProps> = ({ selectedEmail, onSelectEmail, onQuoteGenerated }) => {
-  // 使用 useEmailAnalysis hook 获取选中邮件的分析数据
-  const { data: analysisSections, isLoading, error } = useEmailAnalysis(selectedEmail);
+const InboxTab: React.FC<InboxTabProps> = ({
+  selectedEmail,
+  onSelectEmail,
+  onQuoteGenerated,
+  showRetrieval,
+  onToggleRetrieval,
+}) => {
+  // 使用无限滚动 hook 获取邮件列表
+  const { data, fetchNextPage, hasNextPage, isLoading, error } = useEmailsInfinite();
+  const { data: analysisSections } = useEmailAnalysis(selectedEmail);
+
+  // 扁平化所有页面的数据
+  const emails = data?.pages.flatMap(page => page.emails) || [];
 
   const handleQuoteGenerated = (quoteId: string) => {
     onQuoteGenerated?.(quoteId);
   };
 
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Email List */}
-      <EmailList
-        selectedEmail={selectedEmail}
-        onSelectEmail={onSelectEmail}
-      />
+  // 加载更多
+  const handleLoadMore = () => {
+    if (hasNextPage) {
+      fetchNextPage();
+    }
+  };
 
-      {/* AI Analysis Panel */}
-      <div className="space-y-4">
+  return (
+    <div className="grid grid-cols-12 gap-4 h-[calc(100vh-180px)]">
+      {/* Left Column - Email List (3 columns) */}
+      <div className="col-span-3 bg-[#1e293b] rounded-xl border border-[#334155] overflow-hidden flex flex-col">
+        <div className="px-4 py-3 border-b border-[#334155] flex items-center justify-between">
+          <h2 className="font-semibold text-[#e2e8f0]">📨 收件箱</h2>
+          <span className="text-xs text-[#64748b]">{emails.length} 封邮件</span>
+        </div>
+
+        <div className="flex-1 overflow-y-auto">
+          {isLoading ? (
+            <EmailListSkeleton />
+          ) : error ? (
+            <ErrorState message={error.message} />
+          ) : emails.length === 0 ? (
+            <EmptyState message="收件箱为空" />
+          ) : (
+            <>
+              {emails.map((email) => (
+                <EmailListItem
+                  key={email.id}
+                  email={email}
+                  isSelected={email.id === selectedEmail}
+                  onSelect={() => onSelectEmail(email.id === selectedEmail ? null : email.id)}
+                />
+              ))}
+              {hasNextPage && (
+                <button
+                  onClick={handleLoadMore}
+                  className="w-full py-3 text-sm text-[#64748b] hover:text-[#3b82f6] hover:bg-[#0f172a] transition-colors border-t border-[#1e293b]"
+                >
+                  加载更多...
+                </button>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Middle Column - Email Detail (5 columns) */}
+      <div className="col-span-5 bg-[#1e293b] rounded-xl border border-[#334155] overflow-hidden flex flex-col">
+        {selectedEmail ? (
+          <>
+            <EmailDetailContent
+              emailId={selectedEmail}
+              showRetrieval={showRetrieval}
+              onToggleRetrieval={onToggleRetrieval}
+            />
+          </>
+        ) : (
+          <div className="flex-1 flex items-center justify-center text-[#64748b]">
+            <div className="text-center">
+              <div className="text-4xl mb-3">👈</div>
+              <div>选择一封邮件查看详情</div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Right Column - AI Analysis (4 columns) */}
+      <div className="col-span-4 space-y-4 overflow-y-auto">
         {selectedEmail ? (
           <>
             {/* Quote Generation Panel */}
             <GenerateQuotePanel emailId={selectedEmail} onQuoteGenerated={handleQuoteGenerated} />
+
+            {/* AI Analysis Sections */}
+            {analysisSections && analysisSections.length > 0 ? (
+              analysisSections.map((section, index) => (
+                <AnalysisPanel
+                  key={index}
+                  section={section}
+                  delay={index * 100}
+                />
+              ))
+            ) : (
+              <EmptyState message="暂无分析数据" />
+            )}
           </>
-        ) : null}
-        {selectedEmail ? (
-          isLoading ? (
-            <AnalysisSkeleton />
-          ) : error ? (
-            <ErrorState message={error.message} />
-          ) : analysisSections && analysisSections.length > 0 ? (
-            analysisSections.map((section, index) => (
-              <AnalysisPanel
-                key={index}
-                section={section}
-                delay={index * 100}
-              />
-            ))
-          ) : (
-            <EmptyState message="暂无分析数据" />
-          )
         ) : (
-          <EmptyState />
+          <EmptyState message="选择邮件查看 AI 分析" />
         )}
       </div>
     </div>
@@ -295,139 +379,8 @@ const InboxTab: React.FC<InboxTabProps> = ({ selectedEmail, onSelectEmail, onQuo
 };
 
 // ============================================================================
-// Email List Component
+// Email List Component (deprecated - use EmailListItem instead)
 // ============================================================================
-
-interface EmailListProps {
-  selectedEmail: string | null;
-  onSelectEmail: (id: string | null) => void;
-}
-
-const EmailList: React.FC<EmailListProps> = ({ selectedEmail, onSelectEmail }) => {
-  // 使用 useEmails hook 获取邮件列表
-  const { data: emails, isLoading, error } = useEmails();
-
-  const getStatusClass = (status: ApiEmail['status']) => {
-    switch (status) {
-      case 'new': return 'bg-[#10b981] shadow-[0_0_10px_#10b981]';
-      case 'processing': return 'bg-[#f59e0b] shadow-[0_0_10px_#f59e0b]';
-      case 'done': return 'bg-[#64748b]';
-    }
-  };
-
-  const getPriorityClass = (priority: ApiEmail['priority']) => {
-    switch (priority) {
-      case 'high': return 'bg-[rgba(239,68,68,0.2)] text-[#ef4444]';
-      case 'medium': return 'bg-[rgba(245,158,11,0.2)] text-[#f59e0b]';
-      case 'low': return 'bg-[rgba(100,116,139,0.2)] text-[#94a3b8]';
-    }
-  };
-
-  // Loading 状态 - 骨架屏
-  if (isLoading) {
-    return (
-      <div className="bg-gradient-to-br from-[#1e293b] to-[#0f172a] rounded-2xl border border-[#334155] overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.4)]">
-        <div className="bg-gradient-to-r from-[#1e293b] to-[#334155] px-5 py-4 border-b border-[#475569]">
-          <h2 className="text-lg font-semibold text-[#e2e8f0]">收件箱 - 未处理邮件 | Inbox - Unprocessed Emails</h2>
-        </div>
-        <div>
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="px-5 py-4 border-b border-[#1e293b] animate-pulse">
-              <div className="flex items-start gap-4">
-                <div className="w-2.5 h-2.5 rounded-full mt-1.5 bg-[#334155]" />
-                <div className="flex-1 min-w-0">
-                  <div className="h-4 bg-[#334155] rounded w-3/4 mb-2" />
-                  <div className="h-3 bg-[#334155] rounded w-full mb-2" />
-                  <div className="flex gap-2">
-                    <div className="h-4 bg-[#334155] rounded w-16" />
-                    <div className="h-4 bg-[#334155] rounded w-12" />
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="h-3 bg-[#334155] rounded w-16 mb-1" />
-                  <div className="h-3 bg-[#334155] rounded w-20" />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  // Error 状态
-  if (error) {
-    return (
-      <div className="bg-gradient-to-br from-[#1e293b] to-[#0f172a] rounded-2xl border border-[#334155] overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.4)]">
-        <div className="bg-gradient-to-r from-[#1e293b] to-[#334155] px-5 py-4 border-b border-[#475569]">
-          <h2 className="text-lg font-semibold text-[#e2e8f0]">收件箱 - 未处理邮件 | Inbox - Unprocessed Emails</h2>
-        </div>
-        <div className="p-8 text-center">
-          <div className="text-2xl mb-2">❌</div>
-          <div className="text-[#ef4444]">加载失败 | Load Failed: {error.message}</div>
-        </div>
-      </div>
-    );
-  }
-
-  // 空状态 - 无邮件
-  if (!emails || emails.length === 0) {
-    return (
-      <div className="bg-gradient-to-br from-[#1e293b] to-[#0f172a] rounded-2xl border border-[#334155] overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.4)]">
-        <div className="bg-gradient-to-r from-[#1e293b] to-[#334155] px-5 py-4 border-b border-[#475569]">
-          <h2 className="text-lg font-semibold text-[#e2e8f0]">收件箱 - 未处理邮件 | Inbox - Unprocessed Emails</h2>
-        </div>
-        <div className="p-8 text-center text-[#94a3b8]">
-          <div className="text-4xl mb-3">📭</div>
-          <div className="text-lg font-medium">收件箱为空 | Inbox Empty</div>
-          <div className="text-sm mt-1">暂无待处理的邮件 | No pending emails</div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="bg-gradient-to-br from-[#1e293b] to-[#0f172a] rounded-2xl border border-[#334155] overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.4)]">
-      <div className="bg-gradient-to-r from-[#1e293b] to-[#334155] px-5 py-4 border-b border-[#475569]">
-        <h2 className="text-lg font-semibold text-[#e2e8f0]">收件箱 - 未处理邮件 | Inbox - Unprocessed Emails</h2>
-      </div>
-      <div>
-        {emails.map((email) => (
-          <div
-            key={email.id}
-            onClick={() => onSelectEmail(email.id === selectedEmail ? null : email.id)}
-            className={`px-5 py-4 border-b border-[#1e293b] transition-all cursor-pointer hover:bg-[rgba(96,165,250,0.1)] ${
-              selectedEmail === email.id ? 'bg-[rgba(96,165,250,0.1)]' : ''
-            }`}
-          >
-            <div className="flex items-start gap-4">
-              {/* Status Indicator */}
-              <div className={`w-2.5 h-2.5 rounded-full mt-1.5 flex-shrink-0 ${getStatusClass(email.status)}`} />
-
-              {/* Content */}
-              <div className="flex-1 min-w-0">
-                <h3 className="font-medium text-[#e2e8f0] truncate">{email.subject}</h3>
-                <p className="text-sm text-[#94a3b8] mt-0.5 truncate">{email.preview}</p>
-                <div className="flex items-center gap-2 mt-2">
-                  <span className={`text-[10px] px-2 py-0.5 rounded font-medium ${getPriorityClass(email.priority)}`}>
-                    {email.priority.toUpperCase()}
-                  </span>
-                  <span className="text-[10px] text-[#64748b]">{email.region}</span>
-                </div>
-              </div>
-
-              {/* Meta */}
-              <div className="text-right flex-shrink-0">
-                <div className="text-xs text-[#64748b]">{email.time}</div>
-                <div className="text-xs text-[#64748b] mt-1">{email.from}</div>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
 
 // ============================================================================
 // Analysis Panel Component
@@ -476,43 +429,12 @@ interface EmptyStateProps {
 }
 
 const EmptyState: React.FC<EmptyStateProps> = ({ message }) => (
-  <div className="bg-gradient-to-br from-[#1e293b] to-[#0f172a] rounded-2xl border border-[#334155] p-8 h-full flex items-center justify-center">
-    <div className="text-center text-[#94a3b8]">
-      <div className="text-4xl mb-3">👈</div>
-      <div className="text-lg font-medium">{message || '选择一封邮件 | Select an email'}</div>
-      {!message && (
-        <div className="text-sm mt-1">查看 AI 分析结果和结构化输出 | View AI analysis</div>
-      )}
+  <div className="h-full flex items-center justify-center text-[#64748b] p-8">
+    <div className="text-center">
+      <div className="text-3xl mb-2">📭</div>
+      <div className="text-sm">{message || '暂无数据'}</div>
     </div>
   </div>
-);
-
-// ============================================================================
-// Analysis Skeleton Component (Loading 状态)
-// ============================================================================
-
-const AnalysisSkeleton: React.FC = () => (
-  <>
-    {[1, 2, 3].map((i) => (
-      <div
-        key={i}
-        className="bg-[rgba(15,23,42,0.5)] rounded-xl border border-[#334155] p-4 animate-pulse"
-      >
-        <div className="flex items-center justify-between mb-3">
-          <div className="h-4 bg-[#334155] rounded w-32" />
-          <div className="h-4 bg-[#334155] rounded w-20" />
-        </div>
-        <div className="grid grid-cols-2 gap-2.5">
-          {[1, 2, 3, 4].map((j) => (
-            <div key={j} className="bg-[#0f172a] border border-[#1e293b] rounded-lg p-2.5">
-              <div className="h-2 bg-[#334155] rounded w-16 mb-2" />
-              <div className="h-4 bg-[#334155] rounded w-full" />
-            </div>
-          ))}
-        </div>
-      </div>
-    ))}
-  </>
 );
 
 // ============================================================================
@@ -524,11 +446,11 @@ interface ErrorStateProps {
 }
 
 const ErrorState: React.FC<ErrorStateProps> = ({ message }) => (
-  <div className="bg-gradient-to-br from-[#1e293b] to-[#0f172a] rounded-2xl border border-[#334155] p-8 h-full flex items-center justify-center">
-    <div className="text-center text-[#ef4444]">
-      <div className="text-4xl mb-3">❌</div>
-      <div className="text-lg font-medium">加载失败 | Load Failed</div>
-      <div className="text-sm mt-1">{message}</div>
+  <div className="h-full flex items-center justify-center text-[#ef4444] p-8">
+    <div className="text-center">
+      <div className="text-3xl mb-2">❌</div>
+      <div className="text-sm font-medium">加载失败</div>
+      <div className="text-xs text-[#fca5a5] mt-1">{message}</div>
     </div>
   </div>
 );
@@ -1087,6 +1009,156 @@ const PromptEvolution: React.FC<PromptEvolutionProps> = ({ versions }) => {
 };
 
 export default App;
+
+// ============================================================================
+// New Helper Components for Three-Column Layout
+// ============================================================================
+
+/**
+ * Email List Item Component
+ */
+interface EmailListItemProps {
+  email: ApiEmail;
+  isSelected: boolean;
+  onSelect: () => void;
+}
+
+const EmailListItem: React.FC<EmailListItemProps> = ({ email, isSelected, onSelect }) => {
+  const getStatusClass = (status: ApiEmail['status']) => {
+    switch (status) {
+      case 'new': return 'bg-[#10b981] shadow-[0_0_8px_#10b981]';
+      case 'processing': return 'bg-[#f59e0b] shadow-[0_0_8px_#f59e0b]';
+      case 'done': return 'bg-[#64748b]';
+    }
+  };
+
+  const getPriorityClass = (priority: ApiEmail['priority']) => {
+    switch (priority) {
+      case 'high': return 'bg-[rgba(239,68,68,0.2)] text-[#ef4444]';
+      case 'medium': return 'bg-[rgba(245,158,11,0.2)] text-[#f59e0b]';
+      case 'low': return 'bg-[rgba(100,116,139,0.2)] text-[#94a3b8]';
+    }
+  };
+
+  return (
+    <div
+      onClick={onSelect}
+      className={`px-4 py-3 border-b border-[#1e293b] cursor-pointer transition-all hover:bg-[rgba(96,165,250,0.05)] ${
+        isSelected ? 'bg-[rgba(96,165,250,0.1)] border-l-2 border-l-[#3b82f6]' : 'border-l-2 border-l-transparent'
+      }`}
+    >
+      <div className="flex items-start gap-2">
+        <div className={`w-2 h-2 rounded-full mt-1 flex-shrink-0 ${getStatusClass(email.status)}`} />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <h3 className="font-medium text-[#e2e8f0] text-sm truncate flex-1">{email.subject}</h3>
+            <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium flex-shrink-0 ${getPriorityClass(email.priority)}`}>
+              {email.priority === 'high' ? '高' : email.priority === 'medium' ? '中' : '低'}
+            </span>
+          </div>
+          <p className="text-xs text-[#94a3b8] truncate">{email.preview}</p>
+          <div className="flex items-center gap-2 mt-1.5">
+            <span className="text-[10px] text-[#64748b]">{email.from}</span>
+            <span className="text-[10px] text-[#64748b]">·</span>
+            <span className="text-[10px] text-[#64748b]">{email.time}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/**
+ * Email List Skeleton Component
+ */
+const EmailListSkeleton: React.FC = () => (
+  <div className="p-4 space-y-3">
+    {[1, 2, 3, 4, 5].map((i) => (
+      <div key={i} className="flex items-start gap-2 animate-pulse">
+        <div className="w-2 h-2 rounded-full bg-[#334155] mt-1" />
+        <div className="flex-1 space-y-2">
+          <div className="h-3 bg-[#334155] rounded w-3/4" />
+          <div className="h-2 bg-[#334155] rounded w-full" />
+          <div className="flex gap-2">
+            <div className="h-2 bg-[#334155] rounded w-12" />
+            <div className="h-2 bg-[#334155] rounded w-8" />
+          </div>
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
+/**
+ * Email Detail Content Component
+ */
+interface EmailDetailContentProps {
+  emailId: string;
+  showRetrieval: boolean;
+  onToggleRetrieval: () => void;
+}
+
+const EmailDetailContent: React.FC<EmailDetailContentProps> = ({
+  emailId,
+  showRetrieval,
+  onToggleRetrieval,
+}) => {
+  const { workflow } = useWorkflow(emailId);
+
+  // Mock email data (in real app, this would come from API)
+  const emailData = {
+    subject: 'Request for Quote - Pharmaceutical Products',
+    from: 'customer@example.com',
+    receivedAt: new Date().toISOString(),
+    body: 'Dear Sir/Madam,\n\nWe are interested in purchasing pharmaceutical products...\n\nBest regards,\nCustomer',
+  };
+
+  return (
+    <>
+      {/* Header */}
+      <div className="px-4 py-3 border-b border-[#334155] bg-gradient-to-r from-[#1e293b] to-[#334155]">
+        <h2 className="font-bold text-[#e2e8f0] truncate">{emailData.subject}</h2>
+        <div className="flex items-center gap-4 mt-2 text-xs text-[#94a3b8]">
+          <span>From: {emailData.from}</span>
+          <span>·</span>
+          <span>{new Date(emailData.receivedAt).toLocaleString()}</span>
+        </div>
+      </div>
+
+      {/* Content Scroll Area */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {/* Workflow Timeline */}
+        <WorkflowTimeline workflow={workflow} loading={!workflow} />
+
+        {/* Retrieval Toggle Button */}
+        <button
+          onClick={onToggleRetrieval}
+          className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
+            showRetrieval
+              ? 'bg-[#3b82f6] text-white'
+              : 'bg-[#0f172a] text-[#94a3b8] hover:text-[#e2e8f0] border border-[#334155]'
+          }`}
+        >
+          <span className="mr-2">{showRetrieval ? '🔍' : '🔗'}</span>
+          {showRetrieval ? '隐藏检索结果' : '显示检索结果 (Layer 2)'}
+        </button>
+
+        {/* Retrieval Result Panel */}
+        {showRetrieval && (
+          <div className="animate-fade-in">
+            <RetrievalResultPanel emailId={emailId} />
+          </div>
+        )}
+
+        {/* Email Body */}
+        <div className="bg-[#0f172a] border border-[#1e293b] rounded-lg p-4">
+          <h3 className="text-sm font-semibold text-[#e2e8f0] mb-3">邮件内容</h3>
+          <pre className="text-sm text-[#94a3b8] whitespace-pre-wrap font-sans">{emailData.body}</pre>
+        </div>
+      </div>
+    </>
+  );
+};
 
 // ============================================================================
 // Prometheus Metrics Section Component
