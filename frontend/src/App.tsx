@@ -79,18 +79,18 @@ const App: React.FC = () => {
   const [showGenerateDrawer, setShowGenerateDrawer] = useState(false);
   const [showRetrieval, setShowRetrieval] = useState(false);
 
-  // Get refetch from useEmails hook
+  // 获取 refetch 函数
   const { refetch } = useEmails();
 
-  // Handle new emails generated
+  // 处理新邮件生成
   const handleNewEmailsGenerated = useCallback((emails: GeneratedEmail[]) => {
     console.log('新邮件已生成:', emails);
-    // Trigger refresh of email list
+    // 刷新邮件列表
     refetch();
     setShowGenerateDrawer(false);
   }, [refetch]);
 
-  // Handle notification click
+  // 处理通知点击
   const handleNotificationClick = useCallback((notification: Notification) => {
     if (notification.type === 'approval_request' && notification.related_id) {
       const approvalId = parseInt(notification.related_id, 10);
@@ -107,7 +107,7 @@ const App: React.FC = () => {
 
   return (
     <div className="h-screen bg-[#0a0e1a] text-[#e2e8f0] overflow-hidden">
-      {/* Header */}
+      {/* 页面头部 */}
       <header className="bg-[#1e293b] border-b border-[#334155] sticky top-0 z-30">
         <div className="max-w-[1920px] mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
@@ -135,7 +135,7 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      {/* Navigation */}
+      {/* 导航栏 */}
       <nav className="bg-[#1e293b] border-b border-[#334155] flex-shrink-0">
         <div className="max-w-[1920px] mx-auto px-6">
           <div className="flex space-x-1">
@@ -166,13 +166,13 @@ const App: React.FC = () => {
             <TabButton
               active={activeTab === 'agents'}
               onClick={() => setActiveTab('agents')}
-              label="🤖 Agent"
+              label="🤖 智能代理"
               activeColor="text-[#f97316] border-[#f97316]"
             />
             <TabButton
               active={activeTab === 'metrics'}
               onClick={() => setActiveTab('metrics')}
-              label="📊 指标"
+              label="📊 数据指标"
               activeColor="text-[#a855f7] border-[#a855f7]"
             />
             <TabButton
@@ -185,7 +185,7 @@ const App: React.FC = () => {
         </div>
       </nav>
 
-      {/* Main Content - Three Column Layout */}
+      {/* 主内容区 - 三列布局 */}
       <main className="flex-1 overflow-hidden">
         <div className="h-full px-6 py-6">
         {activeTab === 'inbox' && (
@@ -257,7 +257,7 @@ const TabButton: React.FC<TabButtonProps> = ({ active, onClick, label, activeCol
 );
 
 // ============================================================================
-// Inbox Tab Component - Three Column Layout
+// 收件箱标签页组件 - 三列布局
 // ============================================================================
 
 interface InboxTabProps {
@@ -295,7 +295,7 @@ const InboxTab: React.FC<InboxTabProps> = ({
 
   return (
     <div className="grid grid-cols-12 gap-4 h-full">
-      {/* Left Column - Email List (3 columns) */}
+      {/* 左侧列 - 邮件列表（3 列） */}
       <div className="col-span-3 bg-[#1e293b] rounded-xl border border-[#334155] overflow-hidden flex flex-col min-h-0">
         <div className="px-4 py-3 border-b border-[#334155] flex items-center justify-between flex-shrink-0">
           <h2 className="font-semibold text-[#e2e8f0]">📨 收件箱</h2>
@@ -332,7 +332,7 @@ const InboxTab: React.FC<InboxTabProps> = ({
         </div>
       </div>
 
-      {/* Middle Column - Email Detail (5 columns) */}
+      {/* 中间列 - 邮件详情（5 列） */}
       <div className="col-span-5 bg-[#1e293b] rounded-xl border border-[#334155] overflow-hidden flex flex-col">
         {selectedEmail ? (
           <>
@@ -352,14 +352,14 @@ const InboxTab: React.FC<InboxTabProps> = ({
         )}
       </div>
 
-      {/* Right Column - AI Analysis (4 columns) */}
+      {/* 右侧列 - AI 分析（4 列） */}
       <div className="col-span-4 space-y-4 overflow-y-auto overflow-x-hidden">
         {selectedEmail ? (
           <>
-            {/* Quote Generation Panel */}
+            {/* 报价生成面板 */}
             <GenerateQuotePanel emailId={selectedEmail} onQuoteGenerated={handleQuoteGenerated} />
 
-            {/* AI Analysis Sections */}
+            {/* AI 分析部分 */}
             {analysisSections && analysisSections.length > 0 ? (
               analysisSections.map((section, index) => (
                 <AnalysisPanel
@@ -440,7 +440,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({ message }) => (
 );
 
 // ============================================================================
-// Error State Component
+// 错误状态组件
 // ============================================================================
 
 interface ErrorStateProps {
@@ -458,31 +458,31 @@ const ErrorState: React.FC<ErrorStateProps> = ({ message }) => (
 );
 
 // ============================================================================
-// Agents Tab Component
+// Agent 监控标签页组件
 // ============================================================================
 
 const AgentsTab: React.FC = () => {
   const { data: agents, isLoading, error } = useAgentsStatus();
 
-  // Loading 状态
+  // 加载中
   if (isLoading) {
     return (
       <div className="space-y-6">
         <div className="text-center text-[#94a3b8] py-12">
           <div className="text-2xl mb-2">⏳</div>
-          <div>加载 Agent 状态中... | Loading Agent Status...</div>
+          <div>加载 Agent 状态中...</div>
         </div>
       </div>
     );
   }
 
-  // Error 状态
+  // 错误状态
   if (error) {
     return (
       <div className="space-y-6">
         <div className="text-center text-[#ef4444] py-12">
           <div className="text-2xl mb-2">❌</div>
-          <div>加载失败 | Load Failed: {error.message}</div>
+          <div>加载失败：{error.message}</div>
         </div>
       </div>
     );
@@ -494,7 +494,7 @@ const AgentsTab: React.FC = () => {
       <div className="space-y-6">
         <div className="text-center text-[#94a3b8] py-12">
           <div className="text-2xl mb-2">📭</div>
-          <div>暂无 Agent 数据 | No Agent Data</div>
+          <div>暂无 Agent 数据</div>
         </div>
       </div>
     );
@@ -561,20 +561,20 @@ const CEOAgentCard: React.FC<CEOAgentCardProps> = ({
     <div className="bg-[linear-gradient(145deg,rgba(249,115,22,0.1),rgba(15,23,42,0.5))] rounded-2xl border border-[rgba(249,115,22,0.3)] p-6">
       <div className="flex items-center justify-between mb-4">
         <span className="text-lg font-semibold text-[#f97316] flex items-center gap-2">
-          📋 CEO Agent (任务分解器 | Task Decomposer)
+          📋 CEO Agent (任务分解器)
         </span>
         <span className={`text-xs px-3 py-1 rounded-full font-medium ${getStatusColor(status)}`}>
           {status === 'Running' && '● '}
           {status === 'Completed' && '✓ '}
           {status === 'Pending' && '○ '}
-          {status} {taskId && `· Task #${taskId}`}
+          {status === 'Running' ? '执行中' : status === 'Completed' ? '已完成' : '待处理'} {taskId && `· 任务 #${taskId}`}
         </span>
       </div>
 
-      {/* Budget Bar */}
+      {/* 预算进度条 */}
       <div className="mb-4">
         <div className="flex justify-between text-sm text-[#94a3b8] mb-2">
-          <span>预算消耗 | Budget Used</span>
+          <span>预算消耗</span>
           <span className="font-mono">${budgetUsed.toFixed(2)} / ${budgetMax.toFixed(2)}</span>
         </div>
         <div className="h-2 bg-[#0f172a] rounded-full overflow-hidden">
@@ -585,7 +585,7 @@ const CEOAgentCard: React.FC<CEOAgentCardProps> = ({
         </div>
       </div>
 
-      {/* Sub Agents Grid */}
+      {/* 子 Agent 网格 */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
         {subAgents.map((agent, index) => (
           <SubAgentCard key={index} agent={agent} />
@@ -596,7 +596,7 @@ const CEOAgentCard: React.FC<CEOAgentCardProps> = ({
 };
 
 // ============================================================================
-// Sub Agent Card Component
+// 子 Agent 卡片组件
 // ============================================================================
 
 interface SubAgentCardProps {
@@ -632,7 +632,7 @@ const SubAgentCard: React.FC<SubAgentCardProps> = ({ agent }) => {
         </span>
       </div>
       <div className="flex justify-between text-[10px] text-[#94a3b8] mb-1.5">
-        <span>预算 | Budget</span>
+        <span>预算</span>
         <span className="font-mono">${agent.budget.toFixed(2)}</span>
       </div>
       <div className="h-1.5 bg-[#0f172a] rounded-full overflow-hidden">
@@ -651,7 +651,7 @@ const SubAgentCard: React.FC<SubAgentCardProps> = ({ agent }) => {
 };
 
 // ============================================================================
-// Layer Execution Log Component
+// Layer 执行日志组件
 // ============================================================================
 
 interface LayerExecutionLogProps {
@@ -700,31 +700,31 @@ const LayerExecutionLog: React.FC<LayerExecutionLogProps> = ({ traceId }) => {
     });
   };
 
-  // Loading 状态
+  // 加载中
   if (isLoading) {
     return (
       <div className="bg-gradient-to-br from-[#1e293b] to-[#0f172a] rounded-2xl border border-[#334155] overflow-hidden">
         <div className="bg-gradient-to-r from-[#1e293b] to-[#334155] px-5 py-4 border-b border-[#475569]">
-          <h2 className="text-lg font-semibold text-[#e2e8f0]">🔬 邮件 #{traceId} - 完整执行日志 | Email #{traceId} - Full Execution Log</h2>
+          <h2 className="text-lg font-semibold text-[#e2e8f0]">🔬 邮件 #{traceId} - 完整执行日志</h2>
         </div>
         <div className="p-5 text-center text-[#94a3b8]">
           <div className="text-2xl mb-2">⏳</div>
-          <div>加载执行日志中... | Loading Execution Log...</div>
+          <div>加载执行日志中...</div>
         </div>
       </div>
     );
   }
 
-  // Error 状态
+  // 错误状态
   if (error) {
     return (
       <div className="bg-gradient-to-br from-[#1e293b] to-[#0f172a] rounded-2xl border border-[#334155] overflow-hidden">
         <div className="bg-gradient-to-r from-[#1e293b] to-[#334155] px-5 py-4 border-b border-[#475569]">
-          <h2 className="text-lg font-semibold text-[#e2e8f0]">🔬 邮件 #{traceId} - 完整执行日志 | Email #{traceId} - Full Execution Log</h2>
+          <h2 className="text-lg font-semibold text-[#e2e8f0]">🔬 邮件 #{traceId} - 完整执行日志</h2>
         </div>
         <div className="p-5 text-center text-[#ef4444]">
           <div className="text-2xl mb-2">❌</div>
-          <div>加载失败 | Load Failed: {error.message}</div>
+          <div>加载失败：{error.message}</div>
         </div>
       </div>
     );
@@ -791,7 +791,7 @@ const MetricsTab: React.FC = () => {
       <div className="space-y-6">
         <div className="text-center text-[#94a3b8] py-12">
           <div className="text-2xl mb-2">⏳</div>
-          <div>加载中 | Loading...</div>
+          <div>加载中...</div>
         </div>
       </div>
     );
@@ -802,7 +802,7 @@ const MetricsTab: React.FC = () => {
       <div className="space-y-6">
         <div className="text-center text-[#ef4444] py-12">
           <div className="text-2xl mb-2">❌</div>
-          <div>加载失败 | Load Failed: {(metricsError || tracesError || versionsError)?.message}</div>
+          <div>加载失败：{(metricsError || tracesError || versionsError)?.message}</div>
         </div>
       </div>
     );
@@ -815,20 +815,20 @@ const MetricsTab: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Prometheus Metrics Section */}
+      {/* Prometheus 指标部分 */}
       <PrometheusMetricsSection data={prometheusData} />
 
-      {/* Budget Usage */}
+      {/* 预算使用卡片 */}
       <BudgetUsageCard spent={budgetSpent} max={budgetMax} percentage={budgetPercentage} />
 
-      {/* Standard Metrics Grid */}
+      {/* 标准指标网格 */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {metrics?.map((metric, index) => (
           <MetricCard key={index} metric={metric} />
         ))}
       </div>
 
-      {/* Trace Timeline & Prompt Evolution */}
+      {/* 追踪时间线和 Prompt 进化 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <TraceTimeline spans={traces || []} />
         <PromptEvolution versions={versions || []} />
@@ -838,7 +838,7 @@ const MetricsTab: React.FC = () => {
 };
 
 // ============================================================================
-// Metric Card Component
+// 指标卡片组件
 // ============================================================================
 
 interface MetricCardProps {
@@ -951,7 +951,7 @@ const TraceTimeline: React.FC<TraceTimelineProps> = ({ spans }) => {
 };
 
 // ============================================================================
-// Prompt Evolution Component
+// Prompt 进化组件
 // ============================================================================
 
 interface PromptEvolutionProps {
@@ -963,10 +963,10 @@ const PromptEvolution: React.FC<PromptEvolutionProps> = ({ versions }) => {
     return (
       <div className="bg-gradient-to-br from-[#1e293b] to-[#0f172a] rounded-2xl border border-[#334155] overflow-hidden">
         <div className="bg-gradient-to-r from-[#1e293b] to-[#334155] px-5 py-4 border-b border-[#475569]">
-          <h2 className="text-lg font-semibold text-[#e2e8f0]">🧬 Prompt 进化历史 (Autoresearch)</h2>
+          <h2 className="text-lg font-semibold text-[#e2e8f0]">🧬 Prompt 进化历史</h2>
         </div>
         <div className="p-5 text-center text-[#94a3b8]">
-          <div>暂无 Prompt 版本 | No Prompt Versions</div>
+          <div>暂无 Prompt 版本</div>
         </div>
       </div>
     );
@@ -975,7 +975,7 @@ const PromptEvolution: React.FC<PromptEvolutionProps> = ({ versions }) => {
   return (
     <div className="bg-gradient-to-br from-[#1e293b] to-[#0f172a] rounded-2xl border border-[#334155] overflow-hidden">
       <div className="bg-gradient-to-r from-[#1e293b] to-[#334155] px-5 py-4 border-b border-[#475569]">
-        <h2 className="text-lg font-semibold text-[#e2e8f0]">🧬 Prompt 进化历史 (Autoresearch)</h2>
+        <h2 className="text-lg font-semibold text-[#e2e8f0]">🧬 Prompt 进化历史</h2>
       </div>
       <div className="p-5">
         <div className="space-y-3">
@@ -1205,7 +1205,7 @@ const PrometheusMetricsSection: React.FC<PrometheusMetricsSectionProps> = ({ dat
 };
 
 // ============================================================================
-// Budget Usage Card Component
+// 预算使用卡片组件
 // ============================================================================
 
 interface BudgetUsageCardProps {
@@ -1232,7 +1232,7 @@ const BudgetUsageCard: React.FC<BudgetUsageCardProps> = ({ spent, max, percentag
       <div className="bg-gradient-to-r from-[#1e293b] to-[#334155] px-5 py-4 border-b border-[#475569]">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-[#e2e8f0]">
-            💰 预算使用 | Budget Usage
+            💰 预算使用
           </h2>
           <span className={`text-sm font-medium ${getStatusColor()}`}>
             {percentage.toFixed(1)}%
@@ -1240,11 +1240,11 @@ const BudgetUsageCard: React.FC<BudgetUsageCardProps> = ({ spent, max, percentag
         </div>
       </div>
       <div className="p-5">
-        {/* Progress Bar */}
+        {/* 进度条 */}
         <div className="mb-4">
           <div className="flex justify-between text-sm text-[#94a3b8] mb-2">
-            <span>已用 | Used: ${spent.toFixed(4)}</span>
-            <span>预算 | Budget: ${max.toFixed(2)}</span>
+            <span>已用：${spent.toFixed(4)}</span>
+            <span>预算：${max.toFixed(2)}</span>
           </div>
           <div className="h-3 bg-[#0f172a] rounded-full overflow-hidden">
             <div
@@ -1254,22 +1254,22 @@ const BudgetUsageCard: React.FC<BudgetUsageCardProps> = ({ spent, max, percentag
           </div>
         </div>
 
-        {/* Budget Status */}
+        {/* 预算状态 */}
         <div className="grid grid-cols-3 gap-4">
           <div className="bg-[#0f172a] border border-[#1e293b] rounded-lg p-3 text-center">
-            <div className="text-xs text-[#64748b] mb-1">剩余 | Remaining</div>
+            <div className="text-xs text-[#64748b] mb-1">剩余</div>
             <div className="text-lg font-bold text-[#10b981] font-mono">
               ${(max - spent).toFixed(4)}
             </div>
           </div>
           <div className="bg-[#0f172a] border border-[#1e293b] rounded-lg p-3 text-center">
-            <div className="text-xs text-[#64748b] mb-1">使用率 | Usage</div>
+            <div className="text-xs text-[#64748b] mb-1">使用率</div>
             <div className={`text-lg font-bold font-mono ${getStatusColor()}`}>
               {percentage.toFixed(1)}%
             </div>
           </div>
           <div className="bg-[#0f172a] border border-[#1e293b] rounded-lg p-3 text-center">
-            <div className="text-xs text-[#64748b] mb-1">状态 | Status</div>
+            <div className="text-xs text-[#64748b] mb-1">状态</div>
             <div className={`text-lg font-bold ${getStatusColor()}`}>
               {percentage >= 90 ? '⚠️' : percentage >= 70 ? '⚡' : '✅'}
             </div>
