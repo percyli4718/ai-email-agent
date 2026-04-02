@@ -16,10 +16,11 @@ API 路由模块
     依赖 schemas.py 定义数据模式，
     依赖 observability 模块获取指标和追踪数据。
 """
-from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, Query
+from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, Query, Body
 from fastapi.responses import Response
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from datetime import datetime
+from pydantic import BaseModel
 
 from email_agent.api.schemas import (
     EmailInbox,
@@ -43,6 +44,10 @@ from email_agent.api.schemas import (
     EmailTemplatesResponse,
     EmailTemplateUpdateRequest,
     EmailTemplateCreateRequest,
+    QuoteSchema,
+    QuoteListResponse,
+    QuoteGenerateRequest,
+    QuoteGenerateResponse,
 )
 from email_agent.observability.metrics import metrics
 from email_agent.observability.tracing import tracer
@@ -812,52 +817,62 @@ async def mark_notification_read(notification_id: int):
 # ==================== 审批工作流端点 ====================
 
 
-@router.post("/approvals")
-async def create_approval_request(
-    email_id: str,
-    requester: str,
-    request_type: str,
-    reason: str,
-    amount: float = None,
-    currency: str = "USD",
-    details: dict = None
-):
+class ApprovalRequestCreate(BaseModel):
+    """审批请求创建模型"""
+    email_id: str
+    requester: str
+    request_type: str
+    reason: str
+    amount: Optional[float] = None
+    currency: str = "USD"
+    details: Optional[Dict[str, Any]] = None
+
+
+class ApprovalAction(BaseModel):
+    """审批操作模型"""
+    reviewer: str
+    comments: Optional[str] = None
+
+
+@router.post("/approvals", response_model=Dict[str, Any])
+async def create_approval_request(request: ApprovalRequestCreate):
     """
     创建审批请求
 
     参数:
-        email_id: 关联邮件 ID
-        requester: 申请人
-        request_type: 审批类型 (high_amount/special_terms/new_customer/risk_control/other)
-        reason: 申请原因
-        amount: 涉及金额（可选）
-        currency: 币种
-        details: 详细信息
+        request: ApprovalRequestCreate 类型，审批请求数据
+            - email_id: 关联邮件 ID
+            - requester: 申请人
+            - request_type: 审批类型
+            - reason: 申请原因
+            - amount: 涉及金额（可选）
+            - currency: 币种
+            - details: 详细信息
 
     返回:
         创建的审批请求
     """
-    request = await db.create_approval_request(
-        email_id=email_id,
-        requester=requester,
-        request_type=request_type,
-        reason=reason,
-        amount=amount,
-        currency=currency,
-        details=details
+    created = await db.create_approval_request(
+        email_id=request.email_id,
+        requester=request.requester,
+        request_type=request.request_type,
+        reason=request.reason,
+        amount=request.amount,
+        currency=request.currency,
+        details=request.details
     )
 
     # 创建通知
     await db.create_notification(
         type="approval_request",
         title=f"新的审批请求 | New Approval Request",
-        message=f"{request_type} 审批待处理 | Pending approval",
+        message=f"{request.request_type} 审批待处理 | Pending approval",
         level="warning",
-        related_id=str(request["id"]),
-        extra_data={"email_id": email_id, "amount": amount, "currency": currency}
+        related_id=str(created["id"]),
+        extra_data={"email_id": request.email_id, "amount": request.amount, "currency": request.currency}
     )
 
-    return request
+    return created
 
 
 @router.get("/approvals")
@@ -893,20 +908,21 @@ async def get_approval_request(request_id: int):
     return request
 
 
-@router.post("/approvals/{request_id}/approve")
-async def approve_request(request_id: int, reviewer: str, comments: str = None):
+@router.post("/approvals/{request_id}/approve", response_model=Dict[str, Any])
+async def approve_request(request_id: int, action: ApprovalAction):
     """
     批准审批请求
 
     参数:
         request_id: 审批请求 ID
-        reviewer: 审批人
-        comments: 审批意见
+        action: ApprovalAction 类型，审批操作数据
+            - reviewer: 审批人
+            - comments: 审批意见
 
     返回:
         操作结果
     """
-    success = await db.approve_request(request_id, reviewer, comments)
+    success = await db.approve_request(request_id, action.reviewer, action.comments)
     if not success:
         raise HTTPException(status_code=404, detail="Approval request not found")
 
@@ -922,20 +938,21 @@ async def approve_request(request_id: int, reviewer: str, comments: str = None):
     return {"message": "Request approved", "request_id": request_id}
 
 
-@router.post("/approvals/{request_id}/reject")
-async def reject_request(request_id: int, reviewer: str, comments: str):
+@router.post("/approvals/{request_id}/reject", response_model=Dict[str, Any])
+async def reject_request(request_id: int, action: ApprovalAction):
     """
     拒绝审批请求
 
     参数:
         request_id: 审批请求 ID
-        reviewer: 审批人
-        comments: 拒绝原因
+        action: ApprovalAction 类型，审批操作数据
+            - reviewer: 审批人
+            - comments: 拒绝原因
 
     返回:
         操作结果
     """
-    success = await db.reject_request(request_id, reviewer, comments)
+    success = await db.reject_request(request_id, action.reviewer, action.comments)
     if not success:
         raise HTTPException(status_code=404, detail="Approval request not found")
 
@@ -949,6 +966,232 @@ async def reject_request(request_id: int, reviewer: str, comments: str):
     )
 
     return {"message": "Request rejected", "request_id": request_id}
+
+
+# ==================== 报价生成器端点 ====================
+
+
+@router.get("/quotes", response_model=QuoteListResponse)
+async def list_quotes(status: str = Query(default=None), limit: int = Query(default=50)):
+    """
+    获取报价单列表
+
+    参数:
+        status: str 类型，状态过滤 (可选)
+            draft/sent/accepted/rejected/expired
+        limit: int 类型，返回数量限制 (默认 50)
+
+    返回:
+        QuoteListResponse: 包含报价单列表和总数
+
+    使用场景:
+        - 前端展示报价列表
+        - 查询报价历史
+    """
+    # 从数据库获取报价单列表
+    quotes = await db.get_all_quotes(limit=limit, status=status)
+
+    return QuoteListResponse(
+        quotes=quotes,
+        total=len(quotes)
+    )
+
+
+@router.get("/quotes/{quote_id}", response_model=QuoteSchema)
+async def get_quote(quote_id: str):
+    """
+    获取报价单详情
+
+    参数:
+        quote_id: str 类型，报价单号
+
+    返回:
+        QuoteSchema: 包含报价单详情
+
+    使用场景:
+        - 前端展示报价详情
+        - 查看报价项目明细
+    """
+    # 从数据库获取报价单
+    quote = await db.get_quote(quote_id)
+
+    if not quote:
+        raise HTTPException(status_code=404, detail=f"Quote {quote_id} not found")
+
+    return quote
+
+
+@router.post("/quotes/generate", response_model=QuoteGenerateResponse)
+async def generate_quote(request: QuoteGenerateRequest):
+    """
+    基于邮件内容生成报价单
+
+    参数:
+        request: QuoteGenerateRequest 类型，生成请求
+            - email_id: 邮件 ID
+            - context: 额外上下文信息 (可选)
+
+    返回:
+        QuoteGenerateResponse: 包含生成的报价单
+
+    使用场景:
+        - 为客户询价生成正式报价
+        - 基于历史数据和定价政策自动定价
+
+    处理流程:
+        1. 获取邮件详情
+        2. 使用 Layer 3 报价生成器生成报价
+        3. 保存到数据库
+        4. 返回报价单
+    """
+    from email_agent.layer3.generator import QuoteGenerator
+    from email_agent.layer3.prompts import QuoteResult
+
+    # 获取邮件详情
+    email = await db.get_email_by_id(request.email_id)
+    if not email:
+        raise HTTPException(status_code=404, detail=f"Email {request.email_id} not found")
+
+    # 初始化报价生成器
+    generator = QuoteGenerator(settings)
+
+    # 构建上下文
+    context = {}
+
+    # 获取客户信息
+    customer = await db.query_customer(email=email.get("from_address"))
+    if customer:
+        context["customer_history"] = customer
+
+    # 获取定价政策
+    # 从邮件分析中提取产品名称
+    analysis = await db.get_email_analysis(request.email_id)
+    products = []
+    if analysis and analysis.get("layer1_classification"):
+        products = analysis["layer1_classification"].get("products_mentioned", [])
+
+    if products:
+        region = email.get("region", "default")
+        pricing = await db.query_pricing_policy(products, region)
+        context["pricing_policy"] = pricing
+
+    # 获取合规要求
+    if region:
+        compliance = await db.query_compliance_requirements(products, region)
+        context["compliance"] = compliance
+
+    # 生成报价单
+    try:
+        quote_result = await generator.generate_quote(
+            email_id=request.email_id,
+            original_email=email.get("body", "") or email.get("subject", ""),
+            context=context
+        )
+
+        # 从结果中提取报价项目
+        items = quote_result.get("items", [])
+
+        # 创建报价单记录
+        quote = await db.create_quote(
+            quote_id=quote_result.get("quote_id"),
+            email_id=request.email_id,
+            customer_email=quote_result.get("customer_email", email.get("from_address", "")),
+            total_amount=quote_result.get("total_amount", 0),
+            valid_until=quote_result.get("valid_until", ""),
+            items=items,
+            shipping_port=quote_result.get("shipping_port", ""),
+            payment_terms=quote_result.get("payment_terms", "30% advance, 70% against B/L"),
+            notes=quote_result.get("notes"),
+            status="draft"
+        )
+
+        return QuoteGenerateResponse(
+            quote=quote,
+            message="Quote generated successfully"
+        )
+
+    except Exception as e:
+        logger.error("quote_generation_failed", email_id=request.email_id, error=str(e))
+        raise HTTPException(status_code=500, detail=f"Failed to generate quote: {str(e)}")
+
+
+@router.post("/quotes/{quote_id}/status")
+async def update_quote_status(quote_id: str, status: str = Query(...)):
+    """
+    更新报价单状态
+
+    参数:
+        quote_id: str 类型，报价单号
+        status: str 类型，新状态
+            draft/sent/accepted/rejected/expired
+
+    返回:
+        操作结果
+
+    使用场景:
+        - 标记报价单为已发送
+        - 记录客户接受/拒绝
+    """
+    valid_statuses = ["draft", "sent", "accepted", "rejected", "expired"]
+    if status not in valid_statuses:
+        raise HTTPException(status_code=400, detail=f"Invalid status. Must be one of: {valid_statuses}")
+
+    success = await db.update_quote_status(quote_id, status)
+    if not success:
+        raise HTTPException(status_code=404, detail=f"Quote {quote_id} not found")
+
+    # 创建通知
+    await db.create_notification(
+        type="quote_status",
+        title=f"Quote Status Updated | 报价状态更新",
+        message=f"Quote {quote_id} status changed to {status}",
+        level="info",
+        related_id=quote_id,
+        extra_data={"status": status}
+    )
+
+    return {"message": f"Quote status updated to {status}", "quote_id": quote_id}
+
+
+@router.delete("/quotes/{quote_id}")
+async def delete_quote(quote_id: str):
+    """
+    删除报价单
+
+    参数:
+        quote_id: str 类型，报价单号
+
+    返回:
+        删除成功返回 204
+
+    使用场景:
+        - 删除错误的报价单
+        - 清理过期报价
+    """
+    success = await db.delete_quote(quote_id)
+    if not success:
+        raise HTTPException(status_code=404, detail=f"Quote {quote_id} not found")
+
+    return {"message": f"Quote {quote_id} deleted"}
+
+
+@router.get("/emails/{email_id}/quotes")
+async def get_email_quotes(email_id: str):
+    """
+    获取邮件的所有报价单
+
+    参数:
+        email_id: str 类型，邮件 ID
+
+    返回:
+        报价单列表
+
+    使用场景:
+        - 查看邮件相关的报价历史
+        - 追踪报价处理进度
+    """
+    quotes = await db.get_quotes_by_email(email_id)
+    return {"quotes": quotes, "total": len(quotes)}
 
 
 # ==================== 健康检查端点 ====================

@@ -30,7 +30,7 @@ from sqlalchemy import select
 
 from email_agent.config import Settings
 from email_agent.logging_config import get_logger
-from email_agent.storage.models import Customer, PricingPolicy, ComplianceRequirement, EmailAnalysis, Notification
+from email_agent.storage.models import Customer, PricingPolicy, ComplianceRequirement, EmailAnalysis, Notification, Quote, QuoteItem
 
 # 获取当前模块的日志记录器
 logger = get_logger(__name__)
@@ -1195,6 +1195,255 @@ class Database:
                 await session.commit()
                 return True
 
+            return False
+
+    # ============================================================================
+    # Quote CRUD Methods - 报价 CRUD 方法
+    # ============================================================================
+
+    async def create_quote(
+        self,
+        quote_id: str,
+        email_id: str,
+        customer_email: str,
+        total_amount: float,
+        valid_until: str,
+        items: list,
+        shipping_port: str = None,
+        payment_terms: str = None,
+        notes: str = None,
+        status: str = "draft"
+    ) -> dict:
+        """
+        创建报价单
+
+        功能描述:
+            创建新的报价单及其项目。
+            支持事务性创建，确保报价单和项目原子性写入。
+
+        参数:
+            quote_id: str 类型，报价单号
+            email_id: str 类型，关联邮件 ID
+            customer_email: str 类型，客户邮箱
+            total_amount: float 类型，总金额
+            valid_until: str 类型，报价有效期 (YYYY-MM-DD)
+            items: list 类型，报价项目列表
+                每个项目包含：product_name, product_code, quantity, unit_price,
+                currency, incoterm, lead_time_days
+            shipping_port: str 类型，发货港口
+            payment_terms: str 类型，付款条款
+            notes: str 类型，备注
+            status: str 类型，报价状态 (默认 "draft")
+
+        返回值:
+            dict: 创建的报价单记录
+
+        异常:
+            SQLAlchemy 异常
+        """
+        from email_agent.storage.models import Quote, QuoteItem
+        from sqlalchemy import select
+
+        async with self.session() as session:
+            # 检查报价单号是否已存在
+            stmt = select(Quote).where(Quote.quote_id == quote_id)
+            result = await session.execute(stmt)
+            existing = result.scalars().first()
+
+            if existing:
+                logger.warning("quote_id_exists", quote_id=quote_id)
+                return existing.to_dict()
+
+            # 创建报价单
+            quote = Quote(
+                quote_id=quote_id,
+                email_id=email_id,
+                customer_email=customer_email,
+                total_amount=total_amount,
+                valid_until=valid_until,
+                shipping_port=shipping_port or "",
+                payment_terms=payment_terms or "30% advance, 70% against B/L",
+                notes=notes,
+                status=status
+            )
+            session.add(quote)
+            await session.flush()  # 获取自增 ID
+
+            # 创建报价项目
+            for item_data in items:
+                item = QuoteItem(
+                    quote_id=quote.id,
+                    product_name=item_data.get("product_name"),
+                    product_code=item_data.get("product_code"),
+                    quantity=item_data.get("quantity", 1),
+                    unit_price=item_data.get("unit_price", 0),
+                    currency=item_data.get("currency", "USD"),
+                    incoterm=item_data.get("incoterm", "FOB"),
+                    lead_time_days=item_data.get("lead_time_days", 30),
+                    subtotal=item_data.get("quantity", 1) * item_data.get("unit_price", 0)
+                )
+                session.add(item)
+
+            await session.commit()
+            await session.refresh(quote)
+
+            logger.info("quote_created", quote_id=quote_id, total=total_amount)
+            return quote.to_dict()
+
+    async def get_quote(self, quote_id: str) -> dict:
+        """
+        获取报价单详情
+
+        功能描述:
+            根据报价单号查询完整报价信息（包含项目列表）。
+
+        参数:
+            quote_id: str 类型，报价单号
+
+        返回值:
+            dict: 报价单详情，不存在则返回 None
+        """
+        from email_agent.storage.models import Quote
+        from sqlalchemy import select
+
+        async with self.session() as session:
+            stmt = select(Quote).where(Quote.quote_id == quote_id)
+            result = await session.execute(stmt)
+            quote = result.scalars().first()
+
+            return quote.to_dict() if quote else None
+
+    async def get_quote_by_id(self, id: int) -> dict:
+        """
+        根据 ID 获取报价单详情
+
+        功能描述:
+            根据主键 ID 查询报价单信息。
+
+        参数:
+            id: int 类型，报价单主键 ID
+
+        返回值:
+            dict: 报价单详情，不存在则返回 None
+        """
+        from email_agent.storage.models import Quote
+        from sqlalchemy import select
+
+        async with self.session() as session:
+            stmt = select(Quote).where(Quote.id == id)
+            result = await session.execute(stmt)
+            quote = result.scalars().first()
+
+            return quote.to_dict() if quote else None
+
+    async def get_quotes_by_email(self, email_id: str) -> list:
+        """
+        获取邮件的所有报价单
+
+        功能描述:
+            查询指定邮件关联的所有报价单。
+
+        参数:
+            email_id: str 类型，邮件 ID
+
+        返回值:
+            list: 报价单列表
+        """
+        from email_agent.storage.models import Quote
+        from sqlalchemy import select
+
+        async with self.session() as session:
+            stmt = select(Quote).where(Quote.email_id == email_id).order_by(Quote.created_at.desc())
+            result = await session.execute(stmt)
+            quotes = result.scalars().all()
+
+            return [quote.to_dict() for quote in quotes]
+
+    async def get_all_quotes(self, limit: int = 50, status: str = None) -> list:
+        """
+        获取所有报价单列表
+
+        功能描述:
+            查询报价单列表，支持状态过滤。
+
+        参数:
+            limit: int 类型，返回数量上限，默认 50
+            status: str 类型，状态过滤条件（可选）
+
+        返回值:
+            list: 报价单列表
+        """
+        from email_agent.storage.models import Quote
+        from sqlalchemy import select
+
+        async with self.session() as session:
+            stmt = select(Quote).order_by(Quote.created_at.desc()).limit(limit)
+            if status:
+                stmt = stmt.where(Quote.status == status)
+
+            result = await session.execute(stmt)
+            quotes = result.scalars().all()
+
+            return [quote.to_dict() for quote in quotes]
+
+    async def update_quote_status(self, quote_id: str, status: str) -> bool:
+        """
+        更新报价单状态
+
+        功能描述:
+            更新报价单的状态（draft/sent/accepted/rejected/expired）。
+
+        参数:
+            quote_id: str 类型，报价单号
+            status: str 类型，新状态
+
+        返回值:
+            bool: 是否成功更新
+        """
+        from email_agent.storage.models import Quote
+        from sqlalchemy import select, update
+
+        async with self.session() as session:
+            stmt = select(Quote).where(Quote.quote_id == quote_id)
+            result = await session.execute(stmt)
+            quote = result.scalars().first()
+
+            if quote:
+                stmt = update(Quote).where(Quote.quote_id == quote_id).values(status=status)
+                await session.execute(stmt)
+                await session.commit()
+                logger.info("quote_status_updated", quote_id=quote_id, status=status)
+                return True
+
+            logger.warning("quote_not_found_for_status_update", quote_id=quote_id)
+            return False
+
+    async def delete_quote(self, quote_id: str) -> bool:
+        """
+        删除报价单
+
+        功能描述:
+            删除报价单及其所有项目（级联删除）。
+
+        参数:
+            quote_id: str 类型，报价单号
+
+        返回值:
+            bool: 是否成功删除
+        """
+        from email_agent.storage.models import Quote
+        from sqlalchemy import delete
+
+        async with self.session() as session:
+            stmt = delete(Quote).where(Quote.quote_id == quote_id)
+            result = await session.execute(stmt)
+            await session.commit()
+
+            if result.rowcount > 0:
+                logger.info("quote_deleted", quote_id=quote_id)
+                return True
+
+            logger.warning("quote_not_found_for_deletion", quote_id=quote_id)
             return False
 
 

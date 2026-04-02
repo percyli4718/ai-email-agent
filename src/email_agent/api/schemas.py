@@ -865,3 +865,181 @@ class EmailTemplateCreateRequest(BaseModel):
     quantity_range: str
     subject_template: str
     body_template: str
+
+
+# ==================== 新增 Schema: 报价生成器 API ====================
+
+
+class QuoteItemSchema(BaseModel):
+    """
+    报价项目 Schema
+
+    作用:
+        定义报价单中单个项目的数据结构。
+
+    字段说明:
+        product_name: str 类型，产品名称
+            例如："Paracetamol 500mg"
+
+        product_code: Optional[str] 类型，产品代码 (可选)
+            企业内部产品编码或 SKU
+
+        quantity: int 类型，数量
+            订购的产品数量
+
+        unit_price: float 类型，单价
+            每单位产品的价格 (USD)
+
+        currency: str 类型，币种
+            固定为 "USD"
+
+        incoterm: str 类型，国际贸易术语
+            FOB: Free On Board (船上交货)
+            CIF: Cost, Insurance and Freight (成本加保险费加运费)
+
+        lead_time_days: int 类型，交货周期
+            从订单确认到交货的天数
+
+        subtotal: float 类型，小计金额
+            quantity * unit_price
+
+    使用场景:
+        - 作为报价单响应中的项目项
+        - 前端展示报价明细
+    """
+    product_name: str
+    product_code: Optional[str] = None
+    quantity: int = Field(gt=0)
+    unit_price: float = Field(gt=0)
+    currency: str = "USD"
+    incoterm: str
+    lead_time_days: int = Field(gt=0)
+    subtotal: float
+
+
+class QuoteSchema(BaseModel):
+    """
+    报价单 Schema
+
+    作用:
+        定义完整报价单的数据结构。
+
+    字段说明:
+        id: int 类型，主键 ID
+            数据库记录的主键 ID
+
+        quote_id: str 类型，报价单号
+            业务报价单号，如 QT-2026-0001
+
+        email_id: str 类型，关联邮件 ID
+            生成报价的原始邮件 ID
+
+        customer_email: str 类型，客户邮箱
+            报价接收方的邮箱地址
+
+        items: List[QuoteItemSchema] 类型，报价项目列表
+            包含产品、数量、单价等信息
+
+        total_amount: float 类型，总金额
+            报价的总金额 (USD)
+
+        valid_until: str 类型，有效期至
+            报价的截止日期 (YYYY-MM-DD)
+
+        shipping_port: str 类型，发货港口
+            货物出发港口
+
+        payment_terms: str 类型，付款条款
+            例如："30% advance, 70% against B/L"
+
+        notes: Optional[str] 类型，备注 (可选)
+            附加说明或特殊条款
+
+        status: str 类型，报价状态
+            draft/sent/accepted/rejected/expired
+
+        created_at: str 类型，创建时间
+            ISO 8601 格式的日期时间字符串
+
+    使用场景:
+        - 作为报价 API 的响应模型
+        - 前端展示报价详情
+    """
+    id: int
+    quote_id: str
+    email_id: str
+    customer_email: str
+    items: List[QuoteItemSchema]
+    total_amount: float
+    valid_until: str
+    shipping_port: str
+    payment_terms: str
+    notes: Optional[str] = None
+    status: str
+    created_at: str
+
+
+class QuoteListResponse(BaseModel):
+    """
+    报价单列表响应 Schema
+
+    作用:
+        定义 GET /api/quotes 响应的数据结构。
+
+    字段说明:
+        quotes: List[QuoteSchema] 类型，报价单列表
+            报价单列表，每项包含完整报价信息
+
+        total: int 类型，总数
+            报价单总数量
+
+    使用场景:
+        - 作为报价列表 API 的响应模型
+        - 前端展示报价列表
+    """
+    quotes: List[QuoteSchema]
+    total: int
+
+
+class QuoteGenerateRequest(BaseModel):
+    """
+    报价生成请求 Schema
+
+    作用:
+        定义 POST /api/quotes/generate 请求的数据结构。
+
+    字段说明:
+        email_id: str 类型，邮件 ID
+            要生成报价的邮件 ID
+
+        context: Optional[Dict[str, Any]] 类型，上下文信息 (可选)
+            额外的上下文信息，如定价政策、合规要求等
+
+    使用场景:
+        - POST /api/quotes/generate 请求体
+        - 前端提交报价生成请求
+    """
+    email_id: str
+    context: Optional[Dict[str, Any]] = None
+
+
+class QuoteGenerateResponse(BaseModel):
+    """
+    报价生成响应 Schema
+
+    作用:
+        定义 POST /api/quotes/generate 响应的数据结构。
+
+    字段说明:
+        quote: QuoteSchema 类型，生成的报价单
+            成功生成的报价单详情
+
+        message: str 类型，消息
+            生成结果的消息
+
+    使用场景:
+        - 作为报价生成 API 的响应模型
+        - 前端展示生成结果
+    """
+    quote: QuoteSchema
+    message: str

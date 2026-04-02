@@ -231,6 +231,13 @@ class Email(Base):
         cascade="all, delete-orphan"
     )
 
+    # 关系：一封邮件可以有多个报价单
+    quotes: Mapped[List["Quote"]] = relationship(
+        "Quote",
+        back_populates="email",
+        cascade="all, delete-orphan"
+    )
+
     # 索引
     __table_args__ = (
         Index("ix_emails_status", "status"),
@@ -888,6 +895,201 @@ class ApprovalRequest(Base):
     def __repr__(self) -> str:
         """返回审批请求的字符串表示，用于调试"""
         return f"<ApprovalRequest(id={self.id}, email_id='{self.email_id}', type='{self.request_type}', status='{self.status}')>"
+
+
+# ============================================================================
+# Quote Models - 报价模型
+# ============================================================================
+
+
+class Quote(Base):
+    """
+    报价单模型
+
+    作用:
+        存储 Layer 3 生成的报价单。
+        每个报价单包含基本信息和多个报价项目。
+
+    表名：quotes
+
+    字段说明:
+        id: int 类型，主键 (自增)
+            报价单唯一标识符
+
+        quote_id: str 类型，报价单号 (唯一)
+            业务报价单号，如 QT-2026-0001
+
+        email_id: str 类型，外键
+            关联的邮件 ID
+
+        customer_email: str 类型，客户邮箱
+            报价接收方的邮箱地址
+
+        total_amount: float 类型，总金额
+            所有报价项目的合计金额 (USD)
+
+        valid_until: str 类型，报价有效期
+            格式：YYYY-MM-DD
+
+        shipping_port: str 类型，发货港口
+            如 "Shanghai, China"
+
+        payment_terms: str 类型，付款条款
+            如 "30% advance, 70% against B/L"
+
+        notes: str 类型，备注
+            附加说明或特殊条款
+
+        status: str 类型，报价状态
+            draft/sent/accepted/rejected/expired
+
+        created_at: datetime 类型，创建时间
+            报价单创建的时间
+
+    关系:
+        items: 一对多关系，一个报价单包含多个报价项目
+        email: 多对一关系，一个报价单属于一封邮件
+
+    使用场景:
+        - 存储 Layer 3 生成的报价单
+        - 查询报价历史
+        - 报价状态追踪
+    """
+    __tablename__ = "quotes"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    quote_id: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
+    email_id: Mapped[str] = mapped_column(String(64), ForeignKey("emails.id"), nullable=True, index=True)
+    customer_email: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    total_amount: Mapped[float] = mapped_column(Float, nullable=False)
+    valid_until: Mapped[str] = mapped_column(String(20), nullable=False)
+    shipping_port: Mapped[str] = mapped_column(String(255), nullable=True)
+    payment_terms: Mapped[str] = mapped_column(String(512), nullable=True)
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default="draft", index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    # 关系：一个报价单包含多个报价项目
+    items: Mapped[List["QuoteItem"]] = relationship(
+        "QuoteItem",
+        back_populates="quote",
+        cascade="all, delete-orphan"
+    )
+
+    # 关系：一个报价单属于一封邮件
+    email: Mapped[Optional["Email"]] = relationship(
+        "Email",
+        back_populates="quotes"
+    )
+
+    def to_dict(self) -> dict:
+        """转换为字典"""
+        return {
+            "id": self.id,
+            "quote_id": self.quote_id,
+            "email_id": self.email_id,
+            "customer_email": self.customer_email,
+            "total_amount": self.total_amount,
+            "valid_until": self.valid_until,
+            "shipping_port": self.shipping_port,
+            "payment_terms": self.payment_terms,
+            "notes": self.notes,
+            "status": self.status,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "items": [item.to_dict() for item in self.items] if self.items else []
+        }
+
+    def __repr__(self) -> str:
+        """返回报价单的字符串表示，用于调试"""
+        return f"<Quote(id={self.id}, quote_id='{self.quote_id}', customer='{self.customer_email}', total={self.total_amount})>"
+
+
+class QuoteItem(Base):
+    """
+    报价单项目模型
+
+    作用:
+        存储报价单中的每个产品行项目。
+        每个报价项目属于一个报价单。
+
+    表名：quote_items
+
+    字段说明:
+        id: int 类型，主键 (自增)
+            报价项目唯一标识符
+
+        quote_id: int 类型，外键
+            关联的报价单 ID
+
+        product_name: str 类型，产品名称
+            如 "Paracetamol 500mg"
+
+        product_code: str 类型，产品代码
+            企业内部产品编码或 SKU
+
+        quantity: int 类型，数量
+            订购的产品数量
+
+        unit_price: float 类型，单价
+            每单位产品的价格 (USD)
+
+        currency: str 类型，币种
+            固定为 "USD"
+
+        incoterm: str 类型，国际贸易术语
+            FOB: Free On Board (船上交货)
+            CIF: Cost, Insurance and Freight (成本加保险费加运费)
+
+        lead_time_days: int 类型，交货周期
+            从订单确认到交货的天数
+
+        subtotal: float 类型，小计金额
+            quantity * unit_price
+
+    关系:
+        quote: 多对一关系，多个报价项目属于一个报价单
+
+    使用场景:
+        - 存储报价单的产品明细
+        - 计算报价总金额
+    """
+    __tablename__ = "quote_items"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    quote_id: Mapped[int] = mapped_column(Integer, ForeignKey("quotes.id", ondelete="CASCADE"), nullable=False, index=True)
+    product_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    product_code: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    quantity: Mapped[int] = mapped_column(Integer, nullable=False)
+    unit_price: Mapped[float] = mapped_column(Float, nullable=False)
+    currency: Mapped[str] = mapped_column(String(10), default="USD")
+    incoterm: Mapped[str] = mapped_column(String(20), nullable=False)
+    lead_time_days: Mapped[int] = mapped_column(Integer, nullable=False)
+    subtotal: Mapped[float] = mapped_column(Float, nullable=False)
+
+    # 关系：多个报价项目属于一个报价单
+    quote: Mapped["Quote"] = relationship(
+        "Quote",
+        back_populates="items"
+    )
+
+    def to_dict(self) -> dict:
+        """转换为字典"""
+        return {
+            "id": self.id,
+            "quote_id": self.quote_id,
+            "product_name": self.product_name,
+            "product_code": self.product_code,
+            "quantity": self.quantity,
+            "unit_price": self.unit_price,
+            "currency": self.currency,
+            "incoterm": self.incoterm,
+            "lead_time_days": self.lead_time_days,
+            "subtotal": self.subtotal
+        }
+
+    def __repr__(self) -> str:
+        """返回报价项目的字符串表示，用于调试"""
+        return f"<QuoteItem(id={self.id}, product='{self.product_name}', quantity={self.quantity}, price={self.unit_price})>"
 
 
 # ==================== 数据库初始化辅助函数 ====================

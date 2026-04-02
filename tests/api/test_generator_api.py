@@ -404,3 +404,172 @@ class TestGeneratorAPIIntegration:
             list_response = client.get("/api/emails/templates")
             assert list_response.status_code == 200
             assert list_response.json()["total"] >= 1
+
+
+# ==================== Quote Generator API Tests ====================
+
+
+class TestQuoteItemSchema:
+    """测试 QuoteItemSchema Schema"""
+
+    def test_valid_quote_item(self):
+        """测试有效的报价项目"""
+        from email_agent.api.schemas import QuoteItemSchema
+
+        item = QuoteItemSchema(
+            product_name="Paracetamol 500mg",
+            product_code="PAR-500",
+            quantity=1000,
+            unit_price=2.50,
+            currency="USD",
+            incoterm="FOB",
+            lead_time_days=30,
+            subtotal=2500.0
+        )
+
+        assert item.product_name == "Paracetamol 500mg"
+        assert item.quantity == 1000
+        assert item.unit_price == 2.50
+        assert item.subtotal == 2500.0
+
+
+class TestQuoteSchema:
+    """测试 QuoteSchema Schema"""
+
+    def test_valid_quote(self):
+        """测试有效的报价单"""
+        from email_agent.api.schemas import QuoteSchema, QuoteItemSchema
+
+        item = QuoteItemSchema(
+            product_name="Paracetamol 500mg",
+            quantity=1000,
+            unit_price=2.50,
+            incoterm="FOB",
+            lead_time_days=30,
+            subtotal=2500.0
+        )
+
+        quote = QuoteSchema(
+            id=1,
+            quote_id="QT-2026-0001",
+            email_id="email_001",
+            customer_email="customer@example.com",
+            items=[item],
+            total_amount=2500.0,
+            valid_until="2026-04-30",
+            shipping_port="Shanghai, China",
+            payment_terms="30% advance, 70% against B/L",
+            notes="Subject to ANVISA approval",
+            status="draft",
+            created_at="2026-04-02T10:00:00Z"
+        )
+
+        assert quote.quote_id == "QT-2026-0001"
+        assert quote.total_amount == 2500.0
+        assert len(quote.items) == 1
+        assert quote.status == "draft"
+
+
+class TestQuoteListResponse:
+    """测试 QuoteListResponse Schema"""
+
+    def test_valid_quote_list(self):
+        """测试有效的报价单列表"""
+        from email_agent.api.schemas import QuoteListResponse, QuoteSchema, QuoteItemSchema
+
+        item = QuoteItemSchema(
+            product_name="Paracetamol 500mg",
+            quantity=1000,
+            unit_price=2.50,
+            incoterm="FOB",
+            lead_time_days=30,
+            subtotal=2500.0
+        )
+
+        quote = QuoteSchema(
+            id=1,
+            quote_id="QT-2026-0001",
+            email_id="email_001",
+            customer_email="customer@example.com",
+            items=[item],
+            total_amount=2500.0,
+            valid_until="2026-04-30",
+            shipping_port="Shanghai, China",
+            payment_terms="30% advance, 70% against B/L",
+            status="draft",
+            created_at="2026-04-02T10:00:00Z"
+        )
+
+        response = QuoteListResponse(
+            quotes=[quote],
+            total=1
+        )
+
+        assert len(response.quotes) == 1
+        assert response.total == 1
+
+
+class TestQuoteGenerateRequest:
+    """测试 QuoteGenerateRequest Schema"""
+
+    def test_valid_request(self):
+        """测试有效的报价生成请求"""
+        from email_agent.api.schemas import QuoteGenerateRequest
+
+        request = QuoteGenerateRequest(
+            email_id="email_001"
+        )
+
+        assert request.email_id == "email_001"
+        assert request.context is None
+
+    def test_request_with_context(self):
+        """测试带上下文的请求"""
+        from email_agent.api.schemas import QuoteGenerateRequest
+
+        request = QuoteGenerateRequest(
+            email_id="email_001",
+            context={"pricing_policy": {"products": ["Paracetamol"]}}
+        )
+
+        assert request.email_id == "email_001"
+        assert request.context is not None
+
+
+class TestQuoteGenerateResponse:
+    """测试 QuoteGenerateResponse Schema"""
+
+    def test_valid_response(self):
+        """测试有效的报价生成响应"""
+        from email_agent.api.schemas import QuoteGenerateResponse, QuoteSchema, QuoteItemSchema
+
+        item = QuoteItemSchema(
+            product_name="Paracetamol 500mg",
+            quantity=1000,
+            unit_price=2.50,
+            incoterm="FOB",
+            lead_time_days=30,
+            subtotal=2500.0
+        )
+
+        quote = QuoteSchema(
+            id=1,
+            quote_id="QT-2026-0001",
+            email_id="email_001",
+            customer_email="customer@example.com",
+            items=[item],
+            total_amount=2500.0,
+            valid_until="2026-04-30",
+            shipping_port="Shanghai, China",
+            payment_terms="30% advance, 70% against B/L",
+            status="draft",
+            created_at="2026-04-02T10:00:00Z"
+        )
+
+        response = QuoteGenerateResponse(
+            quote=quote,
+            message="Quote generated successfully"
+        )
+
+        assert response.quote.quote_id == "QT-2026-0001"
+        assert response.message == "Quote generated successfully"
