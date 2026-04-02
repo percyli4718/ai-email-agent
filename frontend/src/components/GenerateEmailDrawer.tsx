@@ -96,7 +96,7 @@ const GenerateEmailDrawer: React.FC<GenerateEmailDrawerProps> = ({
               <span className="text-2xl">✨</span>
               生成测试邮件
             </h2>
-            <p className="text-xs text-[#64748b] mt-1">Generate Test Emails</p>
+            <p className="text-xs text-[#64748b] mt-1">用于测试的模拟邮件数据</p>
           </div>
           <button
             onClick={handleClose}
@@ -115,7 +115,7 @@ const GenerateEmailDrawer: React.FC<GenerateEmailDrawerProps> = ({
           {/* Count Selector Card */}
           <div className="bg-[#0f172a] border border-[#334155] rounded-xl p-4">
             <label className="block text-sm font-medium text-[#94a3b8] mb-3">
-              📦 生成数量 | Quantity
+              📦 生成数量
             </label>
             <select
               value={count}
@@ -146,7 +146,7 @@ const GenerateEmailDrawer: React.FC<GenerateEmailDrawerProps> = ({
               />
               <div>
                 <div className="text-sm font-medium text-[#e2e8f0]">
-                  🤖 自动处理 | Auto-process
+                  🤖 自动处理
                 </div>
                 <div className="text-xs text-[#64748b] mt-1">
                   {autoProcess
@@ -161,7 +161,7 @@ const GenerateEmailDrawer: React.FC<GenerateEmailDrawerProps> = ({
           <div className="flex items-center gap-3 p-4 bg-[#0f172a] border border-[#334155] rounded-xl">
             <div className={`w-3 h-3 rounded-full ${autoProcess ? 'bg-[#10b981]' : 'bg-[#f59e0b]'} animate-pulse`} />
             <div>
-              <div className="text-xs text-[#64748b]">当前模式 | Mode</div>
+              <div className="text-xs text-[#64748b]">当前模式</div>
               <div className={`text-sm font-medium ${autoProcess ? 'text-[#10b981]' : 'text-[#f59e0b]'}`}>
                 {autoProcess ? '自动处理模式' : '手动处理模式'}
               </div>
@@ -228,12 +228,12 @@ const GenerateEmailDrawer: React.FC<GenerateEmailDrawerProps> = ({
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                   />
                 </svg>
-                生成中... | Generating...
+                生成中...
               </div>
             ) : (
               <div className="flex items-center justify-center gap-2">
                 <span>🚀</span>
-                开始生成 | Start Generating
+                开始生成
               </div>
             )}
           </button>

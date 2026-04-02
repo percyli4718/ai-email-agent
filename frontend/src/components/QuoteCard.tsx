@@ -27,12 +27,12 @@ const getStatusClass = (status: string): string => {
 
 const getStatusLabel = (status: string): string => {
   const labels: Record<string, string> = {
-    draft: '草稿 | Draft',
-    pending: '待发送 | Pending',
-    sent: '已发送 | Sent',
-    accepted: '已接受 | Accepted',
-    rejected: '已拒绝 | Rejected',
-    expired: '已过期 | Expired',
+    draft: '草稿',
+    pending: '待发送',
+    sent: '已发送',
+    accepted: '已接受',
+    rejected: '已拒绝',
+    expired: '已过期',
   };
   return labels[status] || status;
 };

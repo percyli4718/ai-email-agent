@@ -117,23 +117,23 @@ const ExecutionDetailContent: React.FC<ExecutionDetailContentProps> = ({ detail 
             </div>
           </div>
           <div>
-            <span className="text-[#64748b]">邮件 ID | Email ID</span>
+            <span className="text-[#64748b]">邮件 ID</span>
             <div className="text-[#e2e8f0] font-mono mt-1">{detail.email_id}</div>
           </div>
           <div>
-            <span className="text-[#64748b]">开始时间 | Started</span>
+            <span className="text-[#64748b]">开始时间</span>
             <div className="text-[#e2e8f0] mt-1">{formatTime(detail.started_at)}</div>
           </div>
           <div>
-            <span className="text-[#64748b]">完成时间 | Completed</span>
+            <span className="text-[#64748b]">完成时间</span>
             <div className="text-[#e2e8f0] mt-1">{formatTime(detail.completed_at)}</div>
           </div>
           <div>
-            <span className="text-[#64748b]">分配预算 | Budget</span>
+            <span className="text-[#64748b]">分配预算</span>
             <div className="text-[#e2e8f0] font-mono mt-1">${detail.budget_allocated.toFixed(4)}</div>
           </div>
           <div>
-            <span className="text-[#64748b]">实际成本 | Actual Cost</span>
+            <span className="text-[#64748b]">实际成本</span>
             <div className="text-[#e2e8f0] font-mono mt-1">${detail.actual_cost.toFixed(4)}</div>
           </div>
         </div>

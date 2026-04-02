@@ -51,10 +51,10 @@ const getStatusClass = (status: string): string => {
 
 const getStatusLabel = (status: string): string => {
   const labels: Record<string, string> = {
-    pending: '待处理 | Pending',
-    approved: '已批准 | Approved',
-    rejected: '已拒绝 | Rejected',
-    cancelled: '已取消 | Cancelled',
+    pending: '待处理',
+    approved: '已批准',
+    rejected: '已拒绝',
+    cancelled: '已取消',
   };
   return labels[status] || status;
 };
@@ -280,10 +280,10 @@ const Approvals: React.FC<ApprovalsProps> = ({
 
   // Filter tabs
   const tabs: { key: FilterStatus; label: string; count?: number }[] = [
-    { key: 'all', label: '全部 | All' },
-    { key: 'pending', label: '待处理 | Pending' },
-    { key: 'approved', label: '已批准 | Approved' },
-    { key: 'rejected', label: '已拒绝 | Rejected' },
+    { key: 'all', label: '全部' },
+    { key: 'pending', label: '待处理' },
+    { key: 'approved', label: '已批准' },
+    { key: 'rejected', label: '已拒绝' },
   ];
 
   // Show detail view

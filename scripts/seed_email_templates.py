@@ -27,32 +27,32 @@ TEMPLATES = [
         "product_name": "Paracetamol 500mg",
         "region": "Europe",
         "quantity_range": "1000-5000",
-        "subject_template": "RFQ: {product} - Quantity {quantity}",
-        "body_template": "Dear Supplier,\n\nWe are interested in purchasing {product} with quantity {quantity}.\n\nPlease provide your best quote including:\n1. Unit price\n2. Total amount\n3. Delivery time\n4. Payment terms\n\nCustomer: {customer_name}\nEmail: {email}\n\nLooking forward to your prompt response.\n\nBest regards,\n{customer_name}"
+        "subject_template": "报价请求：{product} - 数量 {quantity}",
+        "body_template": "尊敬的供应商：\n\n我们希望采购 {product}，数量为 {quantity}。\n\n请提供最佳报价，包括：\n1. 单价\n2. 总金额\n3. 交货时间\n4. 付款条款\n\n客户：{customer_name}\n邮箱：{email}\n\n期待您的回复。\n\n此致，\n{customer_name}"
     },
     {
         "type": "rfq",
         "product_name": "Ibuprofen 400mg",
         "region": "South America",
         "quantity_range": "500-1000",
-        "subject_template": "Request for Quote: {product} ({quantity} boxes)",
-        "body_template": "Dear Partner,\n\nWe would like to request a quote for {product}.\n\nRequired quantity: {quantity} boxes\nDestination: {region}\n\nPlease include:\n- FOB price\n- CIF price\n- Lead time\n- Payment conditions\n\nContact: {customer_name}\nEmail: {email}\n\nThank you.\n\n{customer_name}"
+        "subject_template": "询价请求：{product}（{quantity} 盒）",
+        "body_template": "尊敬的合作伙伴：\n\n我们希望就 {product} 获取报价。\n\n需求数量：{quantity} 盒\n目的地：{region}\n\n请提供：\n- FOB 价格\n- CIF 价格\n- 交货周期\n- 付款条件\n\n联系人：{customer_name}\n邮箱：{email}\n\n谢谢。\n\n{customer_name}"
     },
     {
         "type": "rfq",
         "product_name": "Amoxicillin 250mg",
         "region": "Asia",
         "quantity_range": "2000-5000",
-        "subject_template": "Inquiry: {product} - Bulk Order {quantity}",
-        "body_template": "Dear Sales Team,\n\nWe are looking to purchase {product} in bulk.\n\nQuantity required: {quantity}\nTarget region: {region}\n\nPlease send us your competitive quote with:\n- Product specifications\n- Pricing details\n- Shipping terms\n- Quality certifications\n\nBest regards,\n{customer_name}\n{email}"
+        "subject_template": "采购咨询：{product} - 批量订单 {quantity}",
+        "body_template": "尊敬的销售团队：\n\n我们希望批量采购 {product}。\n\n需求数量：{quantity}\n目标区域：{region}\n\n请发送具有竞争力的报价，包括：\n- 产品规格\n- 价格详情\n- 运输条款\n- 质量认证\n\n此致，\n{customer_name}\n{email}"
     },
     {
         "type": "rfq",
         "product_name": "Metformin 850mg",
         "region": "Middle East",
         "quantity_range": "1000-2000",
-        "subject_template": "Purchase Inquiry: {product} - {quantity} units",
-        "body_template": "Dear Supplier,\n\nWe represent a pharmaceutical distributor in {region}.\n\nWe need quotation for:\nProduct: {product}\nQuantity: {quantity}\n\nRequirements:\n- GMP certification\n- Proper documentation\n- Competitive pricing\n\nContact person: {customer_name}\nEmail: {email}\n\nWaiting for your reply.\n\nRegards,\n{customer_name}"
+        "subject_template": "采购咨询：{product} - {quantity} 单位",
+        "body_template": "尊敬的供应商：\n\n我们代表 {region} 的一家医药分销商。\n\n我们需要以下产品的报价：\n产品：{product}\n数量：{quantity}\n\n要求：\n- GMP 认证\n- 完整的文件\n- 有竞争力的价格\n\n联系人：{customer_name}\n邮箱：{email}\n\n等待您的回复。\n\n此致，\n{customer_name}"
     },
 
     # ==================== Inquiry 类型 (3 个模板) ====================
@@ -61,24 +61,24 @@ TEMPLATES = [
         "product_name": "Vitamin C Tablets",
         "region": "Europe",
         "quantity_range": "500-1000",
-        "subject_template": "Product Inquiry: {product} Availability",
-        "body_template": "Dear Team,\n\nWe are interested in learning more about {product}.\n\nCould you please provide:\n- Product availability\n- Minimum order quantity\n- Sample availability\n- Certification documents\n\nEstimated quantity: {quantity}\n\nCompany: {customer_name}\nContact: {email}\n\nThank you for your assistance.\n\nBest regards,\n{customer_name}"
+        "subject_template": "产品咨询：{product} 供应信息",
+        "body_template": "尊敬的团队：\n\n我们对 {product} 感兴趣。\n\n请提供以下信息：\n- 产品供应情况\n- 最小起订量\n- 样品提供\n- 认证文件\n\n预估数量：{quantity}\n\n公司：{customer_name}\n联系人：{email}\n\n感谢您的协助。\n\n此致，\n{customer_name}"
     },
     {
         "type": "inquiry",
         "product_name": "Aspirin 100mg",
         "region": "South America",
         "quantity_range": "1000-2000",
-        "subject_template": "General Inquiry - {product}",
-        "body_template": "Hello,\n\nWe would like to inquire about {product}.\n\nPlease provide information on:\n- Product specifications\n- Pricing tiers\n- Delivery options to {region}\n- Regulatory requirements\n\nQuantity interest: {quantity}\n\nSender: {customer_name}\nEmail: {email}\n\nLooking forward to hearing from you.\n\nSincerely,\n{customer_name}"
+        "subject_template": "一般咨询 - {product}",
+        "body_template": "您好，\n\n我们希望了解 {product} 的相关信息。\n\n请提供：\n- 产品规格\n- 价格层级\n- 到 {region} 的配送方案\n- 监管要求\n\n意向数量：{quantity}\n\n发件人：{customer_name}\n邮箱：{email}\n\n期待您的回复。\n\n诚挚的问候，\n{customer_name}"
     },
     {
         "type": "inquiry",
         "product_name": "Omeprazole 20mg",
         "region": "Asia",
         "quantity_range": "500-1500",
-        "subject_template": "Information Request: {product}",
-        "body_template": "Dear Sir/Madam,\n\nWe are exploring suppliers for {product}.\n\nKindly share:\n- Product catalog\n- Price list\n- Quality certifications\n- Export experience\n\nTarget quantity: {quantity}\nRegion: {region}\n\nContact: {customer_name}\n{email}\n\nThank you.\n\n{customer_name}"
+        "subject_template": "信息咨询：{product}",
+        "body_template": "尊敬的女士/先生：\n\n我们正在寻找 {product} 的供应商。\n\n请分享：\n- 产品目录\n- 价格表\n- 质量认证\n- 出口经验\n\n目标数量：{quantity}\n区域：{region}\n\n联系人：{customer_name}\n{email}\n\n谢谢。\n\n{customer_name}"
     },
 
     # ==================== Complaint 类型 (2 个模板) ====================
@@ -87,16 +87,16 @@ TEMPLATES = [
         "product_name": "Cetirizine 10mg",
         "region": "Europe",
         "quantity_range": "200-500",
-        "subject_template": "Quality Complaint: {product} - Batch Issue",
-        "body_template": "Dear Quality Team,\n\nWe regret to report an issue with {product}.\n\nProblem details:\n- Packaging damage observed\n- Some tablets crushed\n- Batch number affected: TBD\n\nQuantity affected: {quantity}\nRegion: {region}\n\nWe request immediate investigation and resolution.\n\nReporter: {customer_name}\nEmail: {email}\n\nUrgent response needed.\n\nRegards,\n{customer_name}"
+        "subject_template": "质量投诉：{product} - 批次问题",
+        "body_template": "尊敬的质量团队：\n\n很遗憾报告 {product} 出现问题。\n\n问题详情：\n- 包装破损\n- 部分药片破碎\n- 受影响批次：待定\n\n受影响数量：{quantity}\n区域：{region}\n\n我们要求立即调查并解决。\n\n报告人：{customer_name}\n邮箱：{email}\n\n需要紧急回复。\n\n此致，\n{customer_name}"
     },
     {
         "type": "complaint",
         "product_name": "Azithromycin 500mg",
         "region": "Asia",
         "quantity_range": "100-300",
-        "subject_template": "Product Issue Report: {product}",
-        "body_template": "Dear Customer Service,\n\nWe have encountered a problem with {product}.\n\nIssues identified:\n- Expiration date unclear\n- Labeling inconsistencies\n- Storage condition concerns\n\nAffected quantity: {quantity}\nDestination: {region}\n\nPlease investigate and advise on corrective actions.\n\nContact: {customer_name}\n{email}\n\nAwaiting your prompt response.\n\n{customer_name}"
+        "subject_template": "产品问题报告：{product}",
+        "body_template": "尊敬的客户服务团队：\n\n我们在使用 {product} 时遇到了问题。\n\n发现的问题：\n- 有效期不清晰\n- 标签不一致\n- 存储条件问题\n\n受影响数量：{quantity}\n目的地：{region}\n\n请调查并告知纠正措施。\n\n联系人：{customer_name}\n{email}\n\n等待您的回复。\n\n{customer_name}"
     },
 
     # ==================== Status Check 类型 (3 个模板) ====================
@@ -105,24 +105,24 @@ TEMPLATES = [
         "product_name": "Losartan 50mg",
         "region": "Europe",
         "quantity_range": "500-1000",
-        "subject_template": "Order Status: {product} - Shipment Inquiry",
-        "body_template": "Dear Logistics Team,\n\nCould you please provide an update on our order for {product}?\n\nOrder details:\n- Quantity: {quantity}\n- Destination: {region}\n- Expected delivery: TBD\n\nWe have not received shipping confirmation yet.\n\nCustomer: {customer_name}\nEmail: {email}\n\nPlease advise on current status.\n\nThank you,\n{customer_name}"
+        "subject_template": "订单状态：{product} - 运输咨询",
+        "body_template": "尊敬的物流团队：\n\n请提供我们 {product} 订单的最新状态。\n\n订单详情：\n- 数量：{quantity}\n- 目的地：{region}\n- 预计交货：待定\n\n我们尚未收到发货确认。\n\n客户：{customer_name}\n邮箱：{email}\n\n请告知当前状态。\n\n谢谢，\n{customer_name}"
     },
     {
         "type": "status_check",
         "product_name": "Atorvastatin 20mg",
         "region": "South America",
         "quantity_range": "1000-2000",
-        "subject_template": "Shipment Status Inquiry - {product}",
-        "body_template": "Dear Partner,\n\nWe are writing to check the status of our {product} order.\n\nDetails:\n- Ordered quantity: {quantity}\n- Shipping to: {region}\n- Order date: TBD\n\nPlease provide:\n- Current order status\n- Expected ship date\n- Tracking information\n\nContact: {customer_name}\n{email}\n\nYour prompt response is appreciated.\n\nBest regards,\n{customer_name}"
+        "subject_template": "运输状态咨询 - {product}",
+        "body_template": "尊敬的合作伙伴：\n\n我们写信咨询 {product} 订单的状态。\n\n详情：\n- 订购数量：{quantity}\n- 运输至：{region}\n- 订购日期：待定\n\n请提供：\n- 当前订单状态\n- 预计发货日期\n- 追踪信息\n\n联系人：{customer_name}\n{email}\n\n感谢您的及时回复。\n\n此致，\n{customer_name}"
     },
     {
         "type": "status_check",
         "product_name": "Amlodipine 5mg",
         "region": "Middle East",
         "quantity_range": "500-1500",
-        "subject_template": "Delivery Status: {product} Order",
-        "body_template": "Dear Sales Team,\n\nWe would like to inquire about the delivery status of {product}.\n\nOrder information:\n- Product: {product}\n- Quantity: {quantity}\n- Region: {region}\n\nCould you please update us on:\n- Production status\n- Shipping schedule\n- Estimated arrival\n\nSender: {customer_name}\nEmail: {email}\n\nLooking forward to your update.\n\nRegards,\n{customer_name}"
+        "subject_template": "交货状态：{product} 订单",
+        "body_template": "尊敬的销售团队：\n\n我们希望了解 {product} 的交货状态。\n\n订单信息：\n- 产品：{product}\n- 数量：{quantity}\n- 区域：{region}\n\n请更新以下信息：\n- 生产状态\n- 运输计划\n- 预计到达时间\n\n发件人：{customer_name}\n邮箱：{email}\n\n期待您的更新。\n\n此致，\n{customer_name}"
     },
 ]
 

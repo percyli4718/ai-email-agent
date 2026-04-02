@@ -1510,7 +1510,7 @@ class Database:
                     from_state="none",
                     to_state=initial_state,
                     triggered_by="system",
-                    reason="Workflow created"
+                    reason="工作流已创建"
                 )
                 await session.execute(stmt)
                 await session.commit()

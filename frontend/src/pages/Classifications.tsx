@@ -56,11 +56,11 @@ const getTypeIcon = (type: string): string => {
 
 const getTypeLabel = (type: string): string => {
   const labels: Record<string, string> = {
-    inquiry: '询盘 | Inquiry',
-    complaint: '投诉 | Complaint',
-    question: '咨询 | Question',
-    contract: '合同 | Contract',
-    other: '其他 | Other',
+    inquiry: '询盘',
+    complaint: '投诉',
+    question: '咨询',
+    contract: '合同',
+    other: '其他',
   };
   return labels[type] || type;
 };
@@ -86,17 +86,17 @@ const getRouteIcon = (route: string): string => {
 
 const getRouteLabel = (route: string): string => {
   const labels: Record<string, string> = {
-    quote_flow: '报价流程 | Quote Flow',
-    complaint_flow: '投诉流程 | Complaint Flow',
-    auto_reply: '自动回复 | Auto Reply',
-    manual: '人工处理 | Manual',
+    quote_flow: '报价流程',
+    complaint_flow: '投诉流程',
+    auto_reply: '自动回复',
+    manual: '人工处理',
   };
   return labels[route] || route;
 };
 
 const formatDate = (dateString: string): string => {
   const date = new Date(dateString);
-  return date.toLocaleDateString(undefined, {
+  return date.toLocaleDateString('zh-CN', {
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
@@ -364,7 +364,7 @@ export const Classifications: React.FC = () => {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
           <span>🏷️</span>
-          邮件分类管理 | Email Classification
+          邮件分类管理
         </h1>
         <p className="text-gray-600 mt-1">
           Layer 1 AI 自动分类结果 - 共 {data?.total || 0} 封邮件
@@ -377,54 +377,54 @@ export const Classifications: React.FC = () => {
           {/* Type Filter */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              邮件类型 | Type
+              邮件类型
             </label>
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value as FilterType)}
               className="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="all">全部 | All</option>
-              <option value="inquiry">📧 询盘 | Inquiry</option>
-              <option value="complaint">⚠️ 投诉 | Complaint</option>
-              <option value="question">❓ 咨询 | Question</option>
-              <option value="contract">📄 合同 | Contract</option>
-              <option value="other">📝 其他 | Other</option>
+              <option value="all">全部</option>
+              <option value="inquiry">📧 询盘</option>
+              <option value="complaint">⚠️ 投诉</option>
+              <option value="question">❓ 咨询</option>
+              <option value="contract">📄 合同</option>
+              <option value="other">📝 其他</option>
             </select>
           </div>
 
           {/* Urgency Filter */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              紧急程度 | Urgency
+              紧急程度
             </label>
             <select
               value={filterUrgency}
               onChange={(e) => setFilterUrgency(e.target.value as any)}
               className="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="all">全部 | All</option>
-              <option value="high">🔴 高 | High</option>
-              <option value="medium">🟡 中 | Medium</option>
-              <option value="low">🟢 低 | Low</option>
+              <option value="all">全部</option>
+              <option value="high">🔴 高</option>
+              <option value="medium">🟡 中</option>
+              <option value="low">🟢 低</option>
             </select>
           </div>
 
           {/* Route Filter */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              路由类型 | Route
+              路由类型
             </label>
             <select
               value={filterRoute}
               onChange={(e) => setFilterRoute(e.target.value as FilterRoute)}
               className="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="all">全部 | All</option>
-              <option value="quote_flow">💰 报价流程 | Quote Flow</option>
-              <option value="complaint_flow">⚠️ 投诉流程 | Complaint Flow</option>
-              <option value="auto_reply">🤖 自动回复 | Auto Reply</option>
-              <option value="manual">👤 人工处理 | Manual</option>
+              <option value="all">全部</option>
+              <option value="quote_flow">💰 报价流程</option>
+              <option value="complaint_flow">⚠️ 投诉流程</option>
+              <option value="auto_reply">🤖 自动回复</option>
+              <option value="manual">👤 人工处理</option>
             </select>
           </div>
         </div>

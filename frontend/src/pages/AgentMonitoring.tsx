@@ -36,18 +36,18 @@ const AgentMonitoring: React.FC = () => {
     <div className="space-y-6">
       {/* 页面标题 */}
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-[#e2e8f0]">🤖 Agent 监控 | Agent Monitoring</h2>
+        <h2 className="text-xl font-bold text-[#e2e8f0]">🤖 Agent 监控</h2>
         <div className="flex items-center gap-2">
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
             className="bg-[#1e293b] border border-[#334155] text-[#e2e8f0] text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-[#60a5fa]"
           >
-            <option value="all">全部状态 | All</option>
-            <option value="pending">等待中 | Pending</option>
-            <option value="running">运行中 | Running</option>
-            <option value="completed">已完成 | Completed</option>
-            <option value="failed">失败 | Failed</option>
+            <option value="all">全部状态</option>
+            <option value="pending">等待中</option>
+            <option value="running">运行中</option>
+            <option value="completed">已完成</option>
+            <option value="failed">失败</option>
           </select>
         </div>
       </div>

@@ -52,60 +52,60 @@ export interface WorkflowTimelineProps {
 
 const STATE_CONFIG: Record<string, { label: string; icon: string; color: string; description: string }> = {
   pending: {
-    label: 'Pending',
+    label: '待处理',
     icon: '⏳',
     color: 'bg-gray-100 border-gray-300 text-gray-600',
-    description: '等待处理 | Awaiting processing'
+    description: '等待处理'
   },
   processing: {
-    label: 'Processing',
+    label: '处理中',
     icon: '🔄',
     color: 'bg-blue-50 border-blue-300 text-blue-600',
-    description: '正在处理 | In progress'
+    description: '正在处理'
   },
   awaiting_approval: {
-    label: 'Awaiting Approval',
+    label: '待审批',
     icon: '📋',
     color: 'bg-amber-50 border-amber-300 text-amber-600',
-    description: '等待审批 | Pending approval'
+    description: '等待审批'
   },
   approved: {
-    label: 'Approved',
+    label: '已批准',
     icon: '✅',
     color: 'bg-green-50 border-green-300 text-green-600',
-    description: '已批准 | Approved'
+    description: '已批准'
   },
   rejected: {
-    label: 'Rejected',
+    label: '已拒绝',
     icon: '❌',
     color: 'bg-red-50 border-red-300 text-red-600',
-    description: '已拒绝 | Rejected'
+    description: '已拒绝'
   },
   completed: {
-    label: 'Completed',
+    label: '已完成',
     icon: '✨',
     color: 'bg-emerald-50 border-emerald-300 text-emerald-600',
-    description: '已完成 | Completed'
+    description: '已完成'
   },
   failed: {
-    label: 'Failed',
+    label: '失败',
     icon: '⚠️',
     color: 'bg-orange-50 border-orange-300 text-orange-600',
-    description: '处理失败 | Failed'
+    description: '处理失败'
   },
   cancelled: {
-    label: 'Cancelled',
+    label: '已取消',
     icon: '🚫',
     color: 'bg-gray-50 border-gray-300 text-gray-400',
-    description: '已取消 | Cancelled'
+    description: '已取消'
   }
 };
 
 const TRIGGERED_BY_LABELS: Record<string, string> = {
-  system: '系统 | System',
-  agent: 'Agent',
-  user: '用户 | User',
-  approval_rule: '审批规则 | Approval Rule'
+  system: '系统',
+  agent: '智能代理',
+  user: '用户',
+  approval_rule: '审批规则'
 };
 
 // ============================================================================
@@ -114,7 +114,7 @@ const TRIGGERED_BY_LABELS: Record<string, string> = {
 
 const formatDate = (dateString: string): string => {
   const date = new Date(dateString);
-  return date.toLocaleString('en-US', {
+  return date.toLocaleString('zh-CN', {
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
@@ -231,7 +231,7 @@ const HistoryItem: React.FC<{
         </div>
 
         <div className="text-xs text-gray-600 mb-1">
-          <span className="font-medium">触发者:</span>{' '}
+          <span className="font-medium">触发者：</span>{' '}
           {getTriggeredByLabel(item.triggeredBy)}
         </div>
 
@@ -244,7 +244,7 @@ const HistoryItem: React.FC<{
         {item.metadata && Object.keys(item.metadata).length > 0 && (
           <details className="mt-2">
             <summary className="text-xs text-gray-400 cursor-pointer hover:text-gray-600">
-              元数据 | Metadata
+              元数据
             </summary>
             <pre className="mt-1 text-xs bg-gray-50 p-2 rounded overflow-auto max-h-32">
               {JSON.stringify(item.metadata, null, 2)}
@@ -271,7 +271,7 @@ const ApprovalBadge: React.FC<{
       <div className="flex items-center gap-2 mb-1">
         <span className="text-lg">📋</span>
         <span className="font-semibold text-amber-800">
-          需要审批 | Approval Required
+          需要审批
         </span>
       </div>
       {reason && (
@@ -279,7 +279,7 @@ const ApprovalBadge: React.FC<{
       )}
       {amount && (
         <p className="text-sm text-amber-700 mt-1">
-          金额 | Amount: ${amount.toLocaleString()}
+          金额：${amount.toLocaleString()}
         </p>
       )}
     </div>
@@ -305,7 +305,7 @@ export const WorkflowTimeline: React.FC<WorkflowTimelineProps> = ({
   if (loading) {
     return (
       <div className="p-6 text-center text-gray-500">
-        <div className="animate-pulse">加载中 | Loading...</div>
+        <div className="animate-pulse">加载中...</div>
       </div>
     );
   }
@@ -314,7 +314,7 @@ export const WorkflowTimeline: React.FC<WorkflowTimelineProps> = ({
     return (
       <div className="p-6 text-center text-gray-400">
         <div className="text-2xl mb-2">📭</div>
-        <div>无工作流记录 | No workflow found</div>
+        <div>无工作流记录</div>
       </div>
     );
   }
@@ -345,7 +345,7 @@ export const WorkflowTimeline: React.FC<WorkflowTimelineProps> = ({
     if (!workflow.history || workflow.history.length === 0) {
       return (
         <div className="text-center text-gray-400 py-4">
-          暂无历史记录 | No history yet
+          暂无历史记录
         </div>
       );
     }
@@ -354,7 +354,7 @@ export const WorkflowTimeline: React.FC<WorkflowTimelineProps> = ({
       <div className="mt-4">
         <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
           <span>📜</span>
-          流程历史 | Workflow History
+          流程历史
         </h3>
         <div className="space-y-1">
           {workflow.history.slice().reverse().map((item, index) => (
@@ -375,7 +375,7 @@ export const WorkflowTimeline: React.FC<WorkflowTimelineProps> = ({
       <div className="px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200">
         <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
           <span>🔄</span>
-          处理流程 | Workflow
+          处理流程
         </h2>
         <p className="text-xs text-gray-500 mt-1">
           邮件 ID: {workflow.email_id}
@@ -400,10 +400,10 @@ export const WorkflowTimeline: React.FC<WorkflowTimelineProps> = ({
         {/* 时间戳 */}
         <div className="mt-4 pt-3 border-t border-gray-100 flex justify-between text-xs text-gray-400">
           <span>
-            创建于 | Created: {formatDate(workflow.created_at)}
+            创建于：{formatDate(workflow.created_at)}
           </span>
           <span>
-            更新于 | Updated: {formatDate(workflow.updated_at)}
+            更新于：{formatDate(workflow.updated_at)}
           </span>
         </div>
       </div>

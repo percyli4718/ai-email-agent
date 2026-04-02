@@ -40,12 +40,12 @@ const getStatusClass = (status: string): string => {
 
 const getStatusLabel = (status: string): string => {
   const labels: Record<string, string> = {
-    draft: '草稿 | Draft',
-    pending: '待发送 | Pending',
-    sent: '已发送 | Sent',
-    accepted: '已接受 | Accepted',
-    rejected: '已拒绝 | Rejected',
-    expired: '已过期 | Expired',
+    draft: '草稿',
+    pending: '待发送',
+    sent: '已发送',
+    accepted: '已接受',
+    rejected: '已拒绝',
+    expired: '已过期',
   };
   return labels[status] || status;
 };
@@ -330,7 +330,7 @@ const QuoteDetail: React.FC<QuoteDetailProps> = ({
             </button>
           ) : (
             <div className="space-y-3">
-              <div className="text-xs text-[#94a3b8] mb-2">选择新状态 | Select new status:</div>
+              <div className="text-xs text-[#94a3b8] mb-2">选择新状态:</div>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={() => handleStatusUpdate('pending')}
@@ -341,7 +341,7 @@ const QuoteDetail: React.FC<QuoteDetailProps> = ({
                       : 'text-[#94a3b8] border-[#334155] hover:border-[#f59e0b]'
                   }`}
                 >
-                  待发送 | Pending
+                  待发送
                 </button>
                 <button
                   onClick={() => handleStatusUpdate('sent')}
@@ -352,21 +352,21 @@ const QuoteDetail: React.FC<QuoteDetailProps> = ({
                       : 'text-[#94a3b8] border-[#334155] hover:border-[#3b82f6]'
                   }`}
                 >
-                  已发送 | Sent
+                  已发送
                 </button>
                 <button
                   onClick={() => handleStatusUpdate('accepted')}
                   disabled={updateStatusMutation.isPending}
                   className="px-3 py-2 text-xs font-medium rounded-lg bg-[rgba(16,185,129,0.2)] text-[#10b981] border border-[#10b981] hover:bg-[rgba(16,185,129,0.3)] transition-colors"
                 >
-                  ✓ 已接受 | Accepted
+                  ✓ 已接受
                 </button>
                 <button
                   onClick={() => handleStatusUpdate('rejected')}
                   disabled={updateStatusMutation.isPending}
                   className="px-3 py-2 text-xs font-medium rounded-lg bg-[rgba(239,68,68,0.2)] text-[#ef4444] border border-[#ef4444] hover:bg-[rgba(239,68,68,0.3)] transition-colors"
                 >
-                  ✕ 已拒绝 | Rejected
+                  ✕ 已拒绝
                 </button>
               </div>
               <button
@@ -376,7 +376,7 @@ const QuoteDetail: React.FC<QuoteDetailProps> = ({
                 }}
                 className="text-xs text-[#94a3b8] hover:text-[#e2e8f0]"
               >
-                取消 | Cancel
+                取消
               </button>
             </div>
           )}

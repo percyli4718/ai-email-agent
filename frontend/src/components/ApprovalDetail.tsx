@@ -62,11 +62,11 @@ const getRequestTypeIcon = (type: string): string => {
 
 const getRequestTypeLabel = (type: string): string => {
   const labels: Record<string, string> = {
-    high_amount: '高金额审批 | High Amount',
-    special_terms: '特殊条款审批 | Special Terms',
-    new_customer: '新客户审批 | New Customer',
-    risk_control: '风控审批 | Risk Control',
-    other: '其他审批 | Other',
+    high_amount: '高金额审批',
+    special_terms: '特殊条款审批',
+    new_customer: '新客户审批',
+    risk_control: '风控审批',
+    other: '其他审批',
   };
   return labels[type] || type;
 };
@@ -83,10 +83,10 @@ const getStatusClass = (status: string): string => {
 
 const getStatusLabel = (status: string): string => {
   const labels: Record<string, string> = {
-    pending: '待处理 | Pending',
-    approved: '已批准 | Approved',
-    rejected: '已拒绝 | Rejected',
-    cancelled: '已取消 | Cancelled',
+    pending: '待处理',
+    approved: '已批准',
+    rejected: '已拒绝',
+    cancelled: '已取消',
   };
   return labels[status] || status;
 };
@@ -408,14 +408,14 @@ const ApprovalDetail: React.FC<ApprovalDetailProps> = ({
               disabled={rejectMutation.isPending}
               className="flex-1 px-4 py-3 text-sm font-medium rounded-lg bg-[rgba(239,68,68,0.2)] text-[#ef4444] border border-[#ef4444] hover:bg-[rgba(239,68,68,0.3)] transition-colors disabled:opacity-50"
             >
-              {rejectMutation.isPending ? '处理中...' : '✕ 拒绝 | Reject'}
+              {rejectMutation.isPending ? '处理中...' : '✕ 拒绝'}
             </button>
             <button
               onClick={() => showComments ? handleActionWithComments('approve') : handleApprove()}
               disabled={approveMutation.isPending}
               className="flex-1 px-4 py-3 text-sm font-medium rounded-lg bg-[rgba(16,185,129,0.2)] text-[#10b981] border border-[#10b981] hover:bg-[rgba(16,185,129,0.3)] transition-colors disabled:opacity-50"
             >
-              {approveMutation.isPending ? '处理中...' : '✓ 批准 | Approve'}
+              {approveMutation.isPending ? '处理中...' : '✓ 批准'}
             </button>
           </div>
         </div>

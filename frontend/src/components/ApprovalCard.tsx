@@ -26,11 +26,11 @@ export interface ApprovalCardProps {
 
 const getRequestTypeLabel = (type: string): string => {
   const labels: Record<string, string> = {
-    high_amount: '高金额审批 | High Amount',
-    special_terms: '特殊条款审批 | Special Terms',
-    new_customer: '新客户审批 | New Customer',
-    risk_control: '风控审批 | Risk Control',
-    other: '其他审批 | Other',
+    high_amount: '高金额审批',
+    special_terms: '特殊条款审批',
+    new_customer: '新客户审批',
+    risk_control: '风控审批',
+    other: '其他审批',
   };
   return labels[type] || type;
 };
@@ -47,10 +47,10 @@ const getStatusColor = (status: string): string => {
 
 const getStatusLabel = (status: string): string => {
   const labels: Record<string, string> = {
-    pending: '待审批 | Pending',
-    approved: '已批准 | Approved',
-    rejected: '已拒绝 | Rejected',
-    cancelled: '已取消 | Cancelled',
+    pending: '待审批',
+    approved: '已批准',
+    rejected: '已拒绝',
+    cancelled: '已取消',
   };
   return labels[status] || status;
 };
@@ -191,14 +191,14 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({
                   disabled={isProcessing}
                   className="flex-1 px-3 py-1.5 bg-[#10b981] hover:bg-[#059669] text-white rounded text-sm font-medium transition-colors disabled:opacity-50"
                 >
-                  {isProcessing ? '处理中...' : '批准 | Approve'}
+                  {isProcessing ? '处理中...' : '批准'}
                 </button>
                 <button
                   onClick={handleReject}
                   disabled={isProcessing}
                   className="flex-1 px-3 py-1.5 bg-[#ef4444] hover:bg-[#dc2626] text-white rounded text-sm font-medium transition-colors disabled:opacity-50"
                 >
-                  {isProcessing ? '处理中...' : '拒绝 | Reject'}
+                  {isProcessing ? '处理中...' : '拒绝'}
                 </button>
                 <button
                   onClick={() => {
@@ -208,7 +208,7 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({
                   disabled={isProcessing}
                   className="px-3 py-1.5 bg-[#475569] hover:bg-[#334155] text-white rounded text-sm font-medium transition-colors disabled:opacity-50"
                 >
-                  取消 | Cancel
+                  取消
                 </button>
               </div>
             </div>

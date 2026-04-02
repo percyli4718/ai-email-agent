@@ -57,7 +57,7 @@ const GenerateQuotePanel: React.FC<GenerateQuotePanelProps> = ({
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-semibold text-[#e2e8f0] flex items-center gap-2">
           <span className="text-lg">📋</span>
-          报价操作 | Quote Actions
+          报价操作
         </h3>
         {existingQuotes && existingQuotes.length > 0 && (
           <button
@@ -82,19 +82,19 @@ const GenerateQuotePanel: React.FC<GenerateQuotePanelProps> = ({
           {generateMutation.isPending ? (
             <>
               <span className="animate-spin">⏳</span>
-              生成中... | Generating...
+              生成中...
             </>
           ) : (
             <>
               <span>✨</span>
-              生成报价 | Generate Quote
+              生成报价
             </>
           )}
         </button>
       ) : (
         <div className="bg-[rgba(16,185,129,0.2)] border border-[#10b981] rounded-lg p-4 text-center">
           <div className="text-[#10b981] text-sm font-medium mb-2">
-            ✓ 报价已生成 | Quote Generated
+            ✓ 报价已生成
           </div>
           <button
             onClick={() => {
@@ -103,7 +103,7 @@ const GenerateQuotePanel: React.FC<GenerateQuotePanelProps> = ({
             }}
             className="text-xs text-[#3b82f6] hover:text-[#60a5fa]"
           >
-            生成新报价 | Generate New Quote
+            生成新报价
           </button>
         </div>
       )}

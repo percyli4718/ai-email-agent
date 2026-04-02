@@ -1109,10 +1109,10 @@ const EmailDetailContent: React.FC<EmailDetailContentProps> = ({
 
   // Mock email data (in real app, this would come from API)
   const emailData = {
-    subject: 'Request for Quote - Pharmaceutical Products',
+    subject: '药品询价请求',
     from: 'customer@example.com',
     receivedAt: new Date().toISOString(),
-    body: 'Dear Sir/Madam,\n\nWe are interested in purchasing pharmaceutical products...\n\nBest regards,\nCustomer',
+    body: '尊敬的供应商：\n\n我们对采购医药产品感兴趣...\n\n此致，\n客户',
   };
 
   return (
@@ -1179,7 +1179,7 @@ const PrometheusMetricsSection: React.FC<PrometheusMetricsSectionProps> = ({ dat
     <div className="bg-gradient-to-br from-[#1e293b] to-[#0f172a] rounded-2xl border border-[#334155] overflow-hidden">
       <div className="bg-gradient-to-r from-[#1e293b] to-[#334155] px-5 py-4 border-b border-[#475569]">
         <h2 className="text-lg font-semibold text-[#e2e8f0]">
-          📊 Prometheus 指标 | Prometheus Metrics
+          📊 Prometheus 指标
         </h2>
       </div>
       <div className="p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

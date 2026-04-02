@@ -71,13 +71,13 @@ const Quotes: React.FC<QuotesProps> = ({
 
   // Filter tabs
   const tabs: { key: QuoteFilterStatus; label: string; icon: string }[] = [
-    { key: 'all', label: '全部 | All', icon: '📋' },
-    { key: 'draft', label: '草稿 | Draft', icon: '📝' },
-    { key: 'pending', label: '待发送 | Pending', icon: '⏳' },
-    { key: 'sent', label: '已发送 | Sent', icon: '✉️' },
-    { key: 'accepted', label: '已接受 | Accepted', icon: '✅' },
-    { key: 'rejected', label: '已拒绝 | Rejected', icon: '❌' },
-    { key: 'expired', label: '已过期 | Expired', icon: '🕐' },
+    { key: 'all', label: '全部', icon: '📋' },
+    { key: 'draft', label: '草稿', icon: '📝' },
+    { key: 'pending', label: '待发送', icon: '⏳' },
+    { key: 'sent', label: '已发送', icon: '✉️' },
+    { key: 'accepted', label: '已接受', icon: '✅' },
+    { key: 'rejected', label: '已拒绝', icon: '❌' },
+    { key: 'expired', label: '已过期', icon: '🕐' },
   ];
 
   // Show detail view
