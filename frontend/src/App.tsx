@@ -5,6 +5,7 @@ import { useMetrics, useTraces, usePromptVersions, usePrometheusMetrics } from '
 import { useAgentsStatus } from './hooks/useAgentsStatus';
 import { Email as ApiEmail, AnalysisSection, Metric, TraceSpan, PromptVersion, Agent } from './types/api';
 import GenerateEmailPanel from './components/GenerateEmailPanel';
+import TemplateEditor from './components/TemplateEditor';
 import type { GeneratedEmail } from './types/generator';
 
 // ============================================================================
@@ -62,7 +63,7 @@ const CURRENT_TRACE_ID = '2847';
 // ============================================================================
 
 const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'inbox' | 'agents' | 'metrics'>('inbox');
+  const [activeTab, setActiveTab] = useState<'inbox' | 'agents' | 'metrics' | 'templates'>('inbox');
   const [selectedEmail, setSelectedEmail] = useState<string | null>(null);
 
   // Get refetch from useEmails hook
@@ -117,6 +118,12 @@ const App: React.FC = () => {
               label="📊 指标 | Metrics"
               activeColor="text-[#a855f7] border-[#a855f7]"
             />
+            <TabButton
+              active={activeTab === 'templates'}
+              onClick={() => setActiveTab('templates')}
+              label="📝 模板管理 | Templates"
+              activeColor="text-[#10b981] border-[#10b981]"
+            />
           </div>
         </div>
       </nav>
@@ -137,6 +144,7 @@ const App: React.FC = () => {
         )}
         {activeTab === 'agents' && <AgentsTab />}
         {activeTab === 'metrics' && <MetricsTab />}
+        {activeTab === 'templates' && <TemplateEditor onTemplateUpdated={() => {}} />}
       </main>
     </div>
   );

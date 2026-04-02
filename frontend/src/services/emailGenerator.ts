@@ -46,3 +46,60 @@ export async function generateSingleEmail(
 
   return response.generated_emails[0];
 }
+
+export async function updateTemplate(
+  templateId: number,
+  data: {
+    subject_template?: string;
+    body_template?: string;
+    is_active?: boolean;
+  }
+): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/emails/templates/${templateId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: '更新失败' }));
+    throw new Error(error.detail || '更新模板失败');
+  }
+}
+
+export async function createTemplate(
+  data: {
+    type: string;
+    product_name: string;
+    region: string;
+    quantity_range: string;
+    subject_template: string;
+    body_template: string;
+  }
+): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/emails/templates`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: '创建失败' }));
+    throw new Error(error.detail || '创建模板失败');
+  }
+}
+
+export async function deleteTemplate(templateId: number): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/emails/templates/${templateId}`, {
+    method: 'DELETE',
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: '删除失败' }));
+    throw new Error(error.detail || '删除模板失败');
+  }
+}

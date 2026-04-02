@@ -43,6 +43,8 @@ export interface EmailTemplate {
   quantity_range: string;
   is_active: boolean;
   created_at: string;
+  subject_template?: string;
+  body_template?: string;
 }
 
 // 模板列表响应

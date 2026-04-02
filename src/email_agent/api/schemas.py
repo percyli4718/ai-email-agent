@@ -764,9 +764,16 @@ class EmailTemplateResponse(BaseModel):
         created_at: str 类型，创建时间
             ISO 8601 格式的日期时间字符串
 
+        subject_template: Optional[str] 类型，主题模板 (可选)
+            邮件主题模板，包含占位符
+
+        body_template: Optional[str] 类型，正文模板 (可选)
+            邮件正文模板，包含占位符
+
     使用场景:
         - 作为模板列表 API 响应中的模板项
         - 前端展示模板配置
+        - 前端模板编辑器加载完整模板内容
     """
     id: int
     type: str
@@ -775,6 +782,8 @@ class EmailTemplateResponse(BaseModel):
     quantity_range: str
     is_active: bool
     created_at: str
+    subject_template: Optional[str] = None
+    body_template: Optional[str] = None
 
 
 class EmailTemplatesResponse(BaseModel):
@@ -797,3 +806,62 @@ class EmailTemplatesResponse(BaseModel):
     """
     templates: List[EmailTemplateResponse]
     total: int
+
+
+class EmailTemplateUpdateRequest(BaseModel):
+    """
+    邮件模板更新请求 Schema
+
+    作用:
+        定义更新邮件模板的请求数据结构。
+
+    字段说明:
+        subject_template: Optional[str] 类型，主题模板
+            可选，更新的主题模板
+
+        body_template: Optional[str] 类型，正文模板
+            可选，更新的正文模板
+
+        is_active: Optional[bool] 类型，是否启用
+            可选，启用/禁用模板
+
+    使用场景:
+        - PUT /api/emails/templates/{id} 请求体
+        - 前端模板编辑器表单提交
+    """
+    subject_template: Optional[str] = None
+    body_template: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
+class EmailTemplateCreateRequest(BaseModel):
+    """
+    邮件模板创建请求 Schema
+
+    作用:
+        定义创建新邮件模板的请求数据结构。
+
+    字段说明:
+        type: str 类型，邮件类型
+            inquiry/rfq/complaint/status_check
+
+        product_name: str 类型，产品名称
+
+        region: str 类型，目标地区
+
+        quantity_range: str 类型，数量范围
+
+        subject_template: str 类型，主题模板
+
+        body_template: str 类型，正文模板
+
+    使用场景:
+        - POST /api/emails/templates 请求体
+        - 前端创建新模板表单提交
+    """
+    type: str
+    product_name: str
+    region: str
+    quantity_range: str
+    subject_template: str
+    body_template: str

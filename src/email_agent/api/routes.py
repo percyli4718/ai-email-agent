@@ -41,11 +41,13 @@ from email_agent.api.schemas import (
     GeneratedEmailCustomer,
     EmailTemplateResponse,
     EmailTemplatesResponse,
+    EmailTemplateUpdateRequest,
+    EmailTemplateCreateRequest,
 )
 from email_agent.observability.metrics import metrics
 from email_agent.observability.tracing import tracer
 from email_agent.storage.database import get_database
-from email_agent.storage.models import EmailTemplate
+from email_agent.storage.models import EmailTemplate, Email as EmailModel
 from email_agent.generator.email_generator import EmailGenerator
 from email_agent.generator.template_service import EmailTemplateService
 from email_agent.config import settings
@@ -374,7 +376,9 @@ async def list_templates() -> EmailTemplatesResponse:
             region=template.region,
             quantity_range=template.quantity_range,
             is_active=template.is_active,
-            created_at=template.created_at.isoformat() if template.created_at else ""
+            created_at=template.created_at.isoformat() if template.created_at else "",
+            subject_template=template.subject_template,
+            body_template=template.body_template,
         )
         for template in templates
     ]
@@ -383,6 +387,180 @@ async def list_templates() -> EmailTemplatesResponse:
         templates=template_responses,
         total=len(template_responses)
     )
+
+
+@router.get("/emails/templates/{template_id}", response_model=EmailTemplateResponse)
+async def get_template(template_id: int):
+    """
+    获取单个邮件模板详情
+
+    参数:
+        template_id: int 类型，模板 ID
+
+    返回:
+        EmailTemplateResponse: 包含模板详情
+
+    使用场景:
+        - 前端模板编辑器加载
+        - 查看模板完整内容
+    """
+    from sqlalchemy import select
+
+    async with db.session() as session:
+        stmt = select(EmailTemplate).where(EmailTemplate.id == template_id)
+        result = await session.execute(stmt)
+        template = result.scalar_one_or_none()
+
+    if not template:
+        raise HTTPException(status_code=404, detail=f"Template {template_id} not found")
+
+    return EmailTemplateResponse(
+        id=template.id,
+        type=template.type,
+        product_name=template.product_name,
+        region=template.region,
+        quantity_range=template.quantity_range,
+        is_active=template.is_active,
+        created_at=template.created_at.isoformat() if template.created_at else "",
+        subject_template=template.subject_template,
+        body_template=template.body_template,
+    )
+
+
+@router.put("/emails/templates/{template_id}", response_model=EmailTemplateResponse)
+async def update_template(template_id: int, request: EmailTemplateUpdateRequest):
+    """
+    更新邮件模板
+
+    参数:
+        template_id: int 类型，模板 ID
+        request: EmailTemplateUpdateRequest 类型，更新请求
+
+    返回:
+        EmailTemplateResponse: 更新后的模板
+
+    使用场景:
+        - 前端模板编辑器保存
+        - 启用/禁用模板
+    """
+    from sqlalchemy import select, update
+
+    async with db.session() as session:
+        # 检查模板是否存在
+        stmt = select(EmailTemplate).where(EmailTemplate.id == template_id)
+        result = await session.execute(stmt)
+        template = result.scalar_one_or_none()
+
+        if not template:
+            raise HTTPException(status_code=404, detail=f"Template {template_id} not found")
+
+        # 更新字段
+        update_data = {}
+        if request.subject_template is not None:
+            update_data["subject_template"] = request.subject_template
+        if request.body_template is not None:
+            update_data["body_template"] = request.body_template
+        if request.is_active is not None:
+            update_data["is_active"] = request.is_active
+
+        if update_data:
+            stmt = update(EmailTemplate).where(EmailTemplate.id == template_id).values(**update_data)
+            await session.execute(stmt)
+            await session.commit()
+
+        # 重新查询
+        stmt = select(EmailTemplate).where(EmailTemplate.id == template_id)
+        result = await session.execute(stmt)
+        updated_template = result.scalar_one_or_none()
+
+    return EmailTemplateResponse(
+        id=updated_template.id,
+        type=updated_template.type,
+        product_name=updated_template.product_name,
+        region=updated_template.region,
+        quantity_range=updated_template.quantity_range,
+        is_active=updated_template.is_active,
+        created_at=updated_template.created_at.isoformat() if updated_template.created_at else "",
+    )
+
+
+@router.post("/emails/templates", response_model=EmailTemplateResponse)
+async def create_template(request: EmailTemplateCreateRequest):
+    """
+    创建新邮件模板
+
+    参数:
+        request: EmailTemplateCreateRequest 类型，创建请求
+
+    返回:
+        EmailTemplateResponse: 新创建的模板
+
+    使用场景:
+        - 前端创建新模板
+        - 批量导入模板
+    """
+    from sqlalchemy import insert, select
+
+    async with db.session() as session:
+        # 插入新模板
+        stmt = insert(EmailTemplate).values(
+            type=request.type,
+            product_name=request.product_name,
+            region=request.region,
+            quantity_range=request.quantity_range,
+            subject_template=request.subject_template,
+            body_template=request.body_template,
+            is_active=True,
+        )
+        result = await session.execute(stmt)
+        await session.commit()
+
+        template_id = result.inserted_primary_key[0]
+
+        # 查询新创建的模板
+        stmt = select(EmailTemplate).where(EmailTemplate.id == template_id)
+        result = await session.execute(stmt)
+        template = result.scalar_one_or_none()
+
+    return EmailTemplateResponse(
+        id=template.id,
+        type=template.type,
+        product_name=template.product_name,
+        region=template.region,
+        quantity_range=template.quantity_range,
+        is_active=template.is_active,
+        created_at=template.created_at.isoformat() if template.created_at else "",
+        subject_template=template.subject_template,
+        body_template=template.body_template,
+    )
+
+
+@router.delete("/emails/templates/{template_id}")
+async def delete_template(template_id: int):
+    """
+    删除邮件模板
+
+    参数:
+        template_id: int 类型，模板 ID
+
+    返回:
+        删除成功返回 204
+
+    使用场景:
+        - 前端删除不需要的模板
+        - 清理过期模板
+    """
+    from sqlalchemy import delete
+
+    async with db.session() as session:
+        stmt = delete(EmailTemplate).where(EmailTemplate.id == template_id)
+        result = await session.execute(stmt)
+        await session.commit()
+
+        if result.rowcount == 0:
+            raise HTTPException(status_code=404, detail=f"Template {template_id} not found")
+
+    return {"message": f"Template {template_id} deleted"}
 
 
 # ==================== 数据端点 ====================
