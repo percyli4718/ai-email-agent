@@ -8,6 +8,9 @@ import GenerateEmailPanel from './components/GenerateEmailPanel';
 import TemplateEditor from './components/TemplateEditor';
 import NotificationCenter, { type Notification } from './components/NotificationCenter';
 import Approvals from './pages/Approvals';
+import Quotes from './pages/Quotes';
+import AgentMonitoring from './pages/AgentMonitoring';
+import GenerateQuotePanel from './components/GenerateQuotePanel';
 import type { GeneratedEmail } from './types/generator';
 
 // ============================================================================
@@ -65,9 +68,10 @@ const CURRENT_TRACE_ID = '2847';
 // ============================================================================
 
 const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'inbox' | 'agents' | 'metrics' | 'templates' | 'approvals'>('inbox');
+  const [activeTab, setActiveTab] = useState<'inbox' | 'agents' | 'metrics' | 'monitoring' | 'templates' | 'approvals' | 'quotes'>('inbox');
   const [selectedEmail, setSelectedEmail] = useState<string | null>(null);
   const [selectedApprovalId, setSelectedApprovalId] = useState<number | null>(null);
+  const [selectedQuoteId, setSelectedQuoteId] = useState<string | null>(null);
 
   // Get refetch from useEmails hook
   const { refetch } = useEmails();
@@ -87,6 +91,10 @@ const App: React.FC = () => {
         setSelectedApprovalId(approvalId);
         setActiveTab('approvals');
       }
+    }
+    if (notification.type === 'quote_status' && notification.related_id) {
+      setSelectedQuoteId(notification.related_id);
+      setActiveTab('quotes');
     }
   }, []);
 
@@ -145,6 +153,12 @@ const App: React.FC = () => {
               label="✅ 审批 | Approvals"
               activeColor="text-[#ec4899] border-[#ec4899]"
             />
+            <TabButton
+              active={activeTab === 'quotes'}
+              onClick={() => setActiveTab('quotes')}
+              label="📋 报价 | Quotes"
+              activeColor="text-[#14b8a6] border-[#14b8a6]"
+            />
           </div>
         </div>
       </nav>
@@ -160,16 +174,27 @@ const App: React.FC = () => {
             <InboxTab
               selectedEmail={selectedEmail}
               onSelectEmail={setSelectedEmail}
+              onQuoteGenerated={(quoteId: string) => {
+                setSelectedQuoteId(quoteId);
+                setActiveTab('quotes');
+              }}
             />
           </div>
         )}
         {activeTab === 'agents' && <AgentsTab />}
         {activeTab === 'metrics' && <MetricsTab />}
+        {activeTab === 'monitoring' && <AgentMonitoring />}
         {activeTab === 'templates' && <TemplateEditor onTemplateUpdated={() => {}} />}
         {activeTab === 'approvals' && (
           <Approvals
             selectedApprovalId={selectedApprovalId}
             onApprovalViewed={() => setSelectedApprovalId(null)}
+          />
+        )}
+        {activeTab === 'quotes' && (
+          <Quotes
+            selectedQuoteId={selectedQuoteId}
+            onQuoteViewed={() => setSelectedQuoteId(null)}
           />
         )}
       </main>
@@ -208,11 +233,16 @@ const TabButton: React.FC<TabButtonProps> = ({ active, onClick, label, activeCol
 interface InboxTabProps {
   selectedEmail: string | null;
   onSelectEmail: (id: string | null) => void;
+  onQuoteGenerated?: (quoteId: string) => void;
 }
 
-const InboxTab: React.FC<InboxTabProps> = ({ selectedEmail, onSelectEmail }) => {
+const InboxTab: React.FC<InboxTabProps> = ({ selectedEmail, onSelectEmail, onQuoteGenerated }) => {
   // 使用 useEmailAnalysis hook 获取选中邮件的分析数据
   const { data: analysisSections, isLoading, error } = useEmailAnalysis(selectedEmail);
+
+  const handleQuoteGenerated = (quoteId: string) => {
+    onQuoteGenerated?.(quoteId);
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -224,6 +254,12 @@ const InboxTab: React.FC<InboxTabProps> = ({ selectedEmail, onSelectEmail }) => 
 
       {/* AI Analysis Panel */}
       <div className="space-y-4">
+        {selectedEmail ? (
+          <>
+            {/* Quote Generation Panel */}
+            <GenerateQuotePanel emailId={selectedEmail} onQuoteGenerated={handleQuoteGenerated} />
+          </>
+        ) : null}
         {selectedEmail ? (
           isLoading ? (
             <AnalysisSkeleton />

@@ -6,3 +6,4 @@ export { useTraces } from './useTraces';
 export { usePromptVersions } from './usePromptVersions';
 export { usePrometheusMetrics } from './usePrometheusMetrics';
 export { useApprovalRequests, useApprovalRequest, useApproveApproval, useRejectApproval } from './useApprovals';
+export { useQuotes, useQuote, useEmailQuotes, useGenerateQuote, useUpdateQuoteStatus, useDeleteQuote } from './useQuotes';
