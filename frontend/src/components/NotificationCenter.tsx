@@ -38,6 +38,7 @@ const getNotificationIcon = (type: string): string => {
     email_status: '📧',
     agent_progress: '🤖',
     approval_request: '✅',
+    quote_status: '📋',
     system: '⚙️',
   };
   return icons[type] || '🔔';
