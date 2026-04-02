@@ -746,11 +746,109 @@ async def get_agents_status():
 @router.get("/prompts/versions", response_model=PromptVersionsResponse)
 async def get_prompt_versions():
     """获取 Prompt 版本历史"""
-    # TODO: 替换为真实的 Prompt 版本查询
+    from email_agent.evolution import PromptEvolution
+
+    # 获取 Layer 1 Prompt 进化器
+    evolution = PromptEvolution(name="layer1_classifier")
+
+    # 如果没有版本历史，返回 mock 数据
+    if not evolution.version_history:
+        return PromptVersionsResponse(
+            versions=MOCK_PROMPT_VERSIONS,
+            total_versions=len(MOCK_PROMPT_VERSIONS)
+        )
+
+    # 返回真实的版本历史
+    versions = []
+    for v in evolution.get_version_history():
+        versions.append({
+            "name": f"v{v['version']}",
+            "score": f"{v['accuracy'] * 100:.1f}%",
+            "changes": [{"type": "add" if "Improved" in v['changes_description'] else "remove", "text": v['changes_description']}],
+        })
+
     return PromptVersionsResponse(
-        versions=MOCK_PROMPT_VERSIONS,
-        total_versions=len(MOCK_PROMPT_VERSIONS)
+        versions=versions,
+        total_versions=len(versions)
     )
+
+
+@router.post("/prompts/evolve")
+async def trigger_prompt_evolution(
+    prompt_name: str = "layer1_classifier",
+    iterations: int = 5
+):
+    """
+    触发 Prompt 进化
+
+    参数:
+        prompt_name: str 类型，Prompt 名称
+        iterations: int 类型，迭代次数
+
+    返回:
+        进化结果
+    """
+    import asyncio
+    from email_agent.evolution import PromptEvolution
+    from email_agent.layer1.classifier import classify
+
+    evolution = PromptEvolution(name=prompt_name)
+
+    # 如果没有 Ground Truth，返回错误
+    if not evolution.ground_truth:
+        return {
+            "status": "error",
+            "message": "No ground truth data available",
+            "hint": "Please add ground truth samples first"
+        }
+
+    # 获取基础 Prompt
+    from email_agent.layer1.prompts import CLASSIFIER_PROMPT
+    base_template = CLASSIFIER_PROMPT
+
+    # 定义预测函数
+    async def predict_fn(input_data: dict) -> dict:
+        # 调用分类器
+        result = await classify(
+            subject=input_data.get("subject", ""),
+            email_body=input_data.get("body", "")
+        )
+        return result
+
+    # 执行进化
+    best_version = await evolution.evolve(
+        predict_fn=predict_fn,
+        base_template=base_template,
+        num_iterations=iterations
+    )
+
+    return {
+        "status": "success",
+        "best_version": best_version.to_dict(),
+        "total_versions": len(evolution.version_history),
+        "improvement": best_version.accuracy - evolution.current_accuracy if evolution.current_version else 0
+    }
+
+
+@router.get("/prompts/stats")
+async def get_prompt_stats():
+    """
+    获取 Prompt 统计信息
+
+    返回:
+        Prompt 使用统计
+    """
+    from email_agent.evolution import PromptEvolution
+
+    evolution = PromptEvolution(name="layer1_classifier")
+
+    return {
+        "prompt_name": evolution.name,
+        "current_accuracy": evolution.current_accuracy,
+        "total_versions": len(evolution.version_history),
+        "ground_truth_size": len(evolution.ground_truth),
+        "best_version": evolution.get_best_version().to_dict() if evolution.get_best_version() else None
+    }
 
 
 # ==================== 可观测性端点 ====================
