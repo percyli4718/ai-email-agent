@@ -1,0 +1,45 @@
+
+╔════════════════════════════════════════════════════════════╗
+║           审批工作流 Playwright 测试报告                    ║
+║              Approval Workflow Test Report                  ║
+╠════════════════════════════════════════════════════════════╣
+║ 总计 (Total): 13                                      ║
+║ 通过 (Passed): 12                                      ║
+║ 失败 (Failed): 1                                       ║
+║ 通过率 (Pass Rate): 92.3%                            ║
+╚════════════════════════════════════════════════════════════╝
+
+详细结果 (Detailed Results):
+────────────────────────────────────────────────────────────
+✅ 创建审批请求 API
+   请求 ID: 15
+✅ 审批列表 API
+   找到 5 条待审批记录
+❌ 点击审批 Tab
+   Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("button:has-text(\"审批\"), button:has-text(\"Approvals\")").first
+
+✅ 批准 API 调用
+   请求 #15 已批准
+✅ 审批状态变更为 approved
+   当前状态：approved
+✅ 拒绝 API 调用
+   请求 #16 已拒绝
+✅ 审批状态变更为 rejected
+   当前状态：rejected
+✅ 审批人信息记录
+   审批人：test_admin
+✅ 审批通知创建
+   找到 10 条审批通知
+✅ 初始状态为 pending
+   实际状态：pending
+✅ 状态变更：pending -> approved
+   当前状态：approved
+✅ 审批时间 recorded_at 已设置
+   审批时间：2026-04-02T07:59:41.844970
+✅ 审批意见已记录
+   意见：Approved for testing
+
+测试时间：2026-04-02T15:59:42.125192
+截图目录：/data/resume/ai-product-dev-jd/.worktrees/ai-email-agent/tests/e2e/screenshots/approvals

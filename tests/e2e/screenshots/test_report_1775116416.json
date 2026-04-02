@@ -1,0 +1,213 @@
+{
+  "timestamp": "2026-04-02T15:53:36.916422",
+  "total_elapsed_seconds": 4.110785245895386,
+  "pass_rate": 0.8,
+  "passed_count": 4,
+  "total_count": 5,
+  "results": {
+    "l1_classification": {
+      "status": "passed",
+      "result": {
+        "type": "inquiry",
+        "priority_score": 0.85,
+        "urgency": "high",
+        "language": "en",
+        "products_mentioned": [
+          "Paracetamol 500mg",
+          "Ibuprofen 400mg",
+          "Amoxicillin 250mg"
+        ],
+        "customer_region": "brazil",
+        "requires_human": false,
+        "suggested_route": "quote_flow"
+      },
+      "assertions": {
+        "type_is_inquiry": true,
+        "region_is_brazil": true,
+        "products_extracted": true,
+        "route_is_quote_flow": true,
+        "priority_is_high": true,
+        "language_is_english": true
+      },
+      "elapsed_seconds": 0.11736559867858887
+    },
+    "l2_retrieval": {
+      "status": "passed",
+      "context": {
+        "similar_emails": {
+          "documents": [],
+          "metadatas": [],
+          "ids": [],
+          "distances": []
+        },
+        "customer_history": null,
+        "pricing_policy": {
+          "policies": [
+            {
+              "product": "Paracetamol 500mg",
+              "base_price": 2.5,
+              "discount_rate": 0.0,
+              "currency": "USD"
+            },
+            {
+              "product": "Ibuprofen 400mg",
+              "base_price": 3.2,
+              "discount_rate": 0.0,
+              "currency": "USD"
+            },
+            {
+              "product": "Amoxicillin 250mg",
+              "base_price": 4.8,
+              "discount_rate": 0.0,
+              "currency": "USD"
+            }
+          ],
+          "region": "brazil"
+        },
+        "compliance": {
+          "requirements": [],
+          "region": "brazil"
+        }
+      },
+      "assertions": {
+        "context_is_dict": true,
+        "has_similar_emails_key": true,
+        "has_customer_history_key": true,
+        "has_pricing_policy_key": true,
+        "has_compliance_key": true
+      },
+      "elapsed_seconds": 0.024582624435424805
+    },
+    "l3_quote": {
+      "status": "passed",
+      "quote": {
+        "quote_id": "QT-2026-BR-001",
+        "customer_email": "carlos.silva@pharmabrasil.com.br",
+        "items": [
+          {
+            "product_name": "Paracetamol 500mg",
+            "product_code": "PAR-500",
+            "quantity": 10000,
+            "unit_price": 2.25,
+            "currency": "USD",
+            "incoterm": "CIF",
+            "lead_time_days": 30
+          },
+          {
+            "product_name": "Ibuprofen 400mg",
+            "product_code": "IBU-400",
+            "quantity": 5000,
+            "unit_price": 2.88,
+            "currency": "USD",
+            "incoterm": "CIF",
+            "lead_time_days": 30
+          },
+          {
+            "product_name": "Amoxicillin 250mg",
+            "product_code": "AMX-250",
+            "quantity": 3000,
+            "unit_price": 4.32,
+            "currency": "USD",
+            "incoterm": "CIF",
+            "lead_time_days": 45
+          }
+        ],
+        "total_amount": 49860.0,
+        "valid_until": "2026-05-02",
+        "shipping_port": "Santos, Brazil",
+        "payment_terms": "30% advance, 70% against B/L",
+        "notes": "Prices include ANVISA compliance costs. CIF Santos."
+      },
+      "assertions": {
+        "has_quote_id": true,
+        "has_customer_email": true,
+        "has_items": true,
+        "has_total_amount": true,
+        "has_valid_until": true,
+        "has_payment_terms": true,
+        "items_have_prices": true,
+        "total_matches_items": true
+      },
+      "elapsed_seconds": 0.08103322982788086
+    },
+    "approval_workflow": {
+      "status": "failed",
+      "approval_request": {
+        "id": 5,
+        "email_id": "test_e2e_1775116412",
+        "requester": "system_auto",
+        "request_type": "high_amount",
+        "amount": 49860.0,
+        "currency": "USD",
+        "reason": "报价金额 $49860.00 超过自动审批阈值",
+        "details": {
+          "quote": {
+            "quote_id": "QT-2026-BR-001",
+            "customer_email": "carlos.silva@pharmabrasil.com.br",
+            "items": [
+              {
+                "product_name": "Paracetamol 500mg",
+                "product_code": "PAR-500",
+                "quantity": 10000,
+                "unit_price": 2.25,
+                "currency": "USD",
+                "incoterm": "CIF",
+                "lead_time_days": 30
+              },
+              {
+                "product_name": "Ibuprofen 400mg",
+                "product_code": "IBU-400",
+                "quantity": 5000,
+                "unit_price": 2.88,
+                "currency": "USD",
+                "incoterm": "CIF",
+                "lead_time_days": 30
+              },
+              {
+                "product_name": "Amoxicillin 250mg",
+                "product_code": "AMX-250",
+                "quantity": 3000,
+                "unit_price": 4.32,
+                "currency": "USD",
+                "incoterm": "CIF",
+                "lead_time_days": 45
+              }
+            ],
+            "total_amount": 49860.0,
+            "valid_until": "2026-05-02",
+            "shipping_port": "Santos, Brazil",
+            "payment_terms": "30% advance, 70% against B/L",
+            "notes": "Prices include ANVISA compliance costs. CIF Santos."
+          }
+        },
+        "status": "pending",
+        "reviewer": null,
+        "reviewed_at": null,
+        "comments": null,
+        "created_at": "2026-04-02T07:53:33.033090"
+      },
+      "assertions": {
+        "approval_created": true,
+        "approval_list_not_empty": true,
+        "approval_successful": true,
+        "status_updated_to_approved": true,
+        "has_approver_info": false
+      },
+      "elapsed_seconds": 0.2225346565246582
+    },
+    "playwright_test": {
+      "status": "passed",
+      "screenshots": [
+        "/data/resume/ai-product-dev-jd/.worktrees/ai-email-agent/tests/e2e/screenshots/06_final_state.png"
+      ],
+      "assertions": {
+        "api_health_responds": true,
+        "emails_api_responds": true,
+        "templates_api_responds": true,
+        "approvals_api_responds": true,
+        "metrics_api_responds": true
+      },
+      "elapsed_seconds": 3.650991916656494
+    }
+  }
+}
