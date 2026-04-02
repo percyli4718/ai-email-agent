@@ -1,0 +1,90 @@
+# AI Email Agent - Docker Compose
+# 本地开发和生产环境部署
+
+version: '3.8'
+
+services:
+  # ============================================================================
+  # 后端服务
+  # ============================================================================
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: email-agent-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - DATABASE_URL=sqlite+aiosqlite:///./data/email_agent.db
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - LOG_LEVEL=INFO
+    volumes:
+      - backend_data:/app/data
+      - backend_logs:/app/logs
+    networks:
+      - email-agent-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # ============================================================================
+  # 前端服务
+  # ============================================================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: email-agent-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - email-agent-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ============================================================================
+  # Ollama 服务 (可选 - 用于本地 Embedding)
+  # ============================================================================
+  ollama:
+    image: ollama/ollama:latest
+    container_name: email-agent-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - email-agent-network
+    profiles:
+      - with-ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+networks:
+  email-agent-network:
+    driver: bridge
+
+volumes:
+  backend_data:
+    driver: local
+  backend_logs:
+    driver: local
+  ollama_data:
+    driver: local
