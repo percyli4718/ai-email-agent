@@ -809,6 +809,148 @@ async def mark_notification_read(notification_id: int):
     return {"message": "Notification marked as read"}
 
 
+# ==================== 审批工作流端点 ====================
+
+
+@router.post("/approvals")
+async def create_approval_request(
+    email_id: str,
+    requester: str,
+    request_type: str,
+    reason: str,
+    amount: float = None,
+    currency: str = "USD",
+    details: dict = None
+):
+    """
+    创建审批请求
+
+    参数:
+        email_id: 关联邮件 ID
+        requester: 申请人
+        request_type: 审批类型 (high_amount/special_terms/new_customer/risk_control/other)
+        reason: 申请原因
+        amount: 涉及金额（可选）
+        currency: 币种
+        details: 详细信息
+
+    返回:
+        创建的审批请求
+    """
+    request = await db.create_approval_request(
+        email_id=email_id,
+        requester=requester,
+        request_type=request_type,
+        reason=reason,
+        amount=amount,
+        currency=currency,
+        details=details
+    )
+
+    # 创建通知
+    await db.create_notification(
+        type="approval_request",
+        title=f"新的审批请求 | New Approval Request",
+        message=f"{request_type} 审批待处理 | Pending approval",
+        level="warning",
+        related_id=str(request["id"]),
+        extra_data={"email_id": email_id, "amount": amount, "currency": currency}
+    )
+
+    return request
+
+
+@router.get("/approvals")
+async def get_approval_requests(status: str = Query(default=None), limit: int = 50):
+    """
+    获取审批请求列表
+
+    参数:
+        status: 审批状态过滤（pending/approved/rejected/cancelled）
+        limit: 返回数量限制
+
+    返回:
+        审批请求列表
+    """
+    requests = await db.get_approval_requests(status=status, limit=limit)
+    return {"requests": requests, "total": len(requests)}
+
+
+@router.get("/approvals/{request_id}")
+async def get_approval_request(request_id: int):
+    """
+    获取审批请求详情
+
+    参数:
+        request_id: 审批请求 ID
+
+    返回:
+        审批请求详情
+    """
+    request = await db.get_approval_request_by_id(request_id)
+    if not request:
+        raise HTTPException(status_code=404, detail="Approval request not found")
+    return request
+
+
+@router.post("/approvals/{request_id}/approve")
+async def approve_request(request_id: int, reviewer: str, comments: str = None):
+    """
+    批准审批请求
+
+    参数:
+        request_id: 审批请求 ID
+        reviewer: 审批人
+        comments: 审批意见
+
+    返回:
+        操作结果
+    """
+    success = await db.approve_request(request_id, reviewer, comments)
+    if not success:
+        raise HTTPException(status_code=404, detail="Approval request not found")
+
+    # 创建通知
+    await db.create_notification(
+        type="approval_request",
+        title="审批已通过 | Approval Approved",
+        message=f"审批请求 #{request_id} 已批准 | Request approved",
+        level="success",
+        related_id=str(request_id)
+    )
+
+    return {"message": "Request approved", "request_id": request_id}
+
+
+@router.post("/approvals/{request_id}/reject")
+async def reject_request(request_id: int, reviewer: str, comments: str):
+    """
+    拒绝审批请求
+
+    参数:
+        request_id: 审批请求 ID
+        reviewer: 审批人
+        comments: 拒绝原因
+
+    返回:
+        操作结果
+    """
+    success = await db.reject_request(request_id, reviewer, comments)
+    if not success:
+        raise HTTPException(status_code=404, detail="Approval request not found")
+
+    # 创建通知
+    await db.create_notification(
+        type="approval_request",
+        title="审批已拒绝 | Approval Rejected",
+        message=f"审批请求 #{request_id} 已拒绝 | Request rejected",
+        level="error",
+        related_id=str(request_id)
+    )
+
+    return {"message": "Request rejected", "request_id": request_id}
+
+
 # ==================== 健康检查端点 ====================
 
 

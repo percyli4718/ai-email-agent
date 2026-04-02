@@ -224,6 +224,13 @@ class Email(Base):
         cascade="all, delete-orphan"
     )
 
+    # 关系：一封邮件可以有多个审批请求
+    approval_requests: Mapped[List["ApprovalRequest"]] = relationship(
+        "ApprovalRequest",
+        back_populates="email",
+        cascade="all, delete-orphan"
+    )
+
     # 索引
     __table_args__ = (
         Index("ix_emails_status", "status"),
@@ -775,6 +782,112 @@ class Notification(Base):
     def __repr__(self) -> str:
         """返回通知的字符串表示，用于调试"""
         return f"<Notification(id={self.id}, type='{self.type}', title='{self.title}')>"
+
+
+# ============================================================================
+# Approval Request Model - 审批请求模型
+# ============================================================================
+
+
+class ApprovalRequest(Base):
+    """
+    邮件审批请求模型
+
+    作用:
+        存储需要人工审批的邮件请求。
+        用于高金额报价、特殊条款、新客户等需要人工审核的场景。
+
+    表名：approval_requests
+
+    字段说明:
+        id: int 类型，主键 (自增)
+            审批请求唯一标识符
+
+        email_id: str 类型，外键
+            关联的邮件 ID
+
+        requester: str 类型，申请人
+            申请审批的 Agent 或用户
+
+        request_type: str 类型，审批类型
+            high_amount/special_terms/new_customer/risk_control/other
+
+        amount: float 类型，涉及金额 (可选)
+            审批涉及的金额（如报价总额）
+
+        currency: str 类型，币种
+            USD/EUR/BRL 等
+
+        reason: str 类型，申请原因
+            为什么需要审批
+
+        details: JSON 类型，详细信息
+            审批相关的详细数据
+
+        status: str 类型，审批状态
+            pending/approved/rejected/cancelled
+
+        reviewer: str 类型，审批人 (可选)
+            执行审批操作的用户
+
+        reviewed_at: datetime 类型，审批时间 (可选)
+            审批操作完成的时间
+
+        comments: str 类型，审批意见 (可选)
+            审批人的意见或备注
+
+        created_at: datetime 类型，创建时间
+            审批请求创建的时间
+
+    使用场景:
+        - 高金额报价审批（超过阈值）
+        - 特殊付款条款审批
+        - 新客户首次交易审批
+        - 风险控制审批
+    """
+    __tablename__ = "approval_requests"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    email_id: Mapped[str] = mapped_column(String(64), ForeignKey("emails.id"), nullable=False, index=True)
+    requester: Mapped[str] = mapped_column(String(100), nullable=False)
+    request_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    amount: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    currency: Mapped[str] = mapped_column(String(10), default="USD")
+    reason: Mapped[str] = mapped_column(Text, nullable=False)
+    details: Mapped[Optional[Dict]] = mapped_column(JSON, nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default="pending", index=True)
+    reviewer: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    reviewed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    comments: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+    # 关系：审批请求属于一封邮件
+    email: Mapped[Optional["Email"]] = relationship(
+        "Email",
+        back_populates="approval_requests"
+    )
+
+    def to_dict(self) -> dict:
+        """转换为字典"""
+        return {
+            "id": self.id,
+            "email_id": self.email_id,
+            "requester": self.requester,
+            "request_type": self.request_type,
+            "amount": self.amount,
+            "currency": self.currency,
+            "reason": self.reason,
+            "details": self.details,
+            "status": self.status,
+            "reviewer": self.reviewer,
+            "reviewed_at": self.reviewed_at.isoformat() if self.reviewed_at else None,
+            "comments": self.comments,
+            "created_at": self.created_at.isoformat() if self.created_at else None
+        }
+
+    def __repr__(self) -> str:
+        """返回审批请求的字符串表示，用于调试"""
+        return f"<ApprovalRequest(id={self.id}, email_id='{self.email_id}', type='{self.request_type}', status='{self.status}')>"
 
 
 # ==================== 数据库初始化辅助函数 ====================

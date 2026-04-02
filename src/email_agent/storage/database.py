@@ -1025,6 +1025,178 @@ class Database:
 
             return False
 
+    async def create_approval_request(
+        self,
+        email_id: str,
+        requester: str,
+        request_type: str,
+        reason: str,
+        amount: float = None,
+        currency: str = "USD",
+        details: dict = None
+    ) -> dict:
+        """
+        创建审批请求
+
+        功能描述:
+            创建新的审批请求记录。
+
+        参数:
+            email_id: str 类型，关联邮件 ID
+            requester: str 类型，申请人
+            request_type: str 类型，审批类型
+            reason: str 类型，申请原因
+            amount: float 类型，涉及金额（可选）
+            currency: str 类型，币种
+            details: dict 类型，详细信息
+
+        返回值:
+            dict: 创建的审批请求记录
+        """
+        from email_agent.storage.models import ApprovalRequest
+        from sqlalchemy import select
+
+        async with self.session() as session:
+            request = ApprovalRequest(
+                email_id=email_id,
+                requester=requester,
+                request_type=request_type,
+                reason=reason,
+                amount=amount,
+                currency=currency,
+                details=details
+            )
+            session.add(request)
+            await session.commit()
+            await session.refresh(request)
+
+            return request.to_dict()
+
+    async def get_approval_requests(self, status: str = None, limit: int = 50) -> list:
+        """
+        获取审批请求列表
+
+        功能描述:
+            查询审批请求列表，可按状态过滤。
+
+        参数:
+            status: str 类型，审批状态（可选）
+            limit: int 类型，返回数量上限
+
+        返回值:
+            list: 审批请求列表
+        """
+        from email_agent.storage.models import ApprovalRequest
+        from sqlalchemy import select
+
+        async with self.session() as session:
+            stmt = select(ApprovalRequest)
+            if status:
+                stmt = stmt.where(ApprovalRequest.status == status)
+            stmt = stmt.order_by(ApprovalRequest.created_at.desc()).limit(limit)
+
+            result = await session.execute(stmt)
+            requests = result.scalars().all()
+
+            return [req.to_dict() for req in requests]
+
+    async def get_approval_request_by_id(self, request_id: int) -> dict:
+        """
+        根据 ID 获取审批请求详情
+
+        功能描述:
+            查询单个审批请求的完整信息。
+
+        参数:
+            request_id: int 类型，审批请求 ID
+
+        返回值:
+            dict: 审批请求详情，不存在则返回 None
+        """
+        from email_agent.storage.models import ApprovalRequest
+        from sqlalchemy import select
+
+        async with self.session() as session:
+            stmt = select(ApprovalRequest).where(ApprovalRequest.id == request_id)
+            result = await session.execute(stmt)
+            request = result.scalars().first()
+
+            return request.to_dict() if request else None
+
+    async def approve_request(self, request_id: int, reviewer: str, comments: str = None) -> bool:
+        """
+        批准审批请求
+
+        功能描述:
+            将审批请求状态更新为 approved。
+
+        参数:
+            request_id: int 类型，审批请求 ID
+            reviewer: str 类型，审批人
+            comments: str 类型，审批意见
+
+        返回值:
+            bool: 是否成功更新
+        """
+        from email_agent.storage.models import ApprovalRequest
+        from sqlalchemy import select, update
+        from datetime import datetime
+
+        async with self.session() as session:
+            stmt = select(ApprovalRequest).where(ApprovalRequest.id == request_id)
+            result = await session.execute(stmt)
+            request = result.scalar_one_or_none()
+
+            if request:
+                stmt = update(ApprovalRequest).where(ApprovalRequest.id == request_id).values(
+                    status="approved",
+                    reviewer=reviewer,
+                    reviewed_at=datetime.utcnow(),
+                    comments=comments
+                )
+                await session.execute(stmt)
+                await session.commit()
+                return True
+
+            return False
+
+    async def reject_request(self, request_id: int, reviewer: str, comments: str) -> bool:
+        """
+        拒绝审批请求
+
+        功能描述:
+            将审批请求状态更新为 rejected。
+
+        参数:
+            request_id: int 类型，审批请求 ID
+            reviewer: str 类型，审批人
+            comments: str 类型，拒绝原因
+
+        返回值:
+            bool: 是否成功更新
+        """
+        from email_agent.storage.models import ApprovalRequest
+        from sqlalchemy import select, update
+        from datetime import datetime
+
+        async with self.session() as session:
+            stmt = select(ApprovalRequest).where(ApprovalRequest.id == request_id)
+            result = await session.execute(stmt)
+            request = result.scalar_one_or_none()
+
+            if request:
+                stmt = update(ApprovalRequest).where(ApprovalRequest.id == request_id).values(
+                    status="rejected",
+                    reviewer=reviewer,
+                    reviewed_at=datetime.utcnow(),
+                    comments=comments
+                )
+                await session.execute(stmt)
+                await session.commit()
+                return True
+
+            return False
+
 
 # 全局数据库实例 (延迟初始化)
 _db_instance: Optional[Database] = None
