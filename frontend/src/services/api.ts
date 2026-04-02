@@ -114,3 +114,94 @@ export async function getTraces(limit?: number): Promise<TraceResponse[]> {
 export async function getPromptVersions(): Promise<PromptVersionsResponse> {
   return request<PromptVersionsResponse>('/prompts/versions');
 }
+
+// ==================== Workflow API ====================
+
+/**
+ * 工作流响应类型
+ */
+export interface WorkflowHistoryItem {
+  id: number;
+  workflow_id: number;
+  from_state: string;
+  to_state: string;
+  triggeredBy: string;
+  reason: string | null;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+}
+
+export interface WorkflowResponse {
+  id: number;
+  email_id: string;
+  current_state: string;
+  requires_approval: boolean;
+  approval_reason: string | null;
+  approval_amount: number | null;
+  created_at: string;
+  updated_at: string;
+  history: WorkflowHistoryItem[];
+}
+
+/**
+ * 获取邮件工作流详情
+ * @param emailId 邮件 ID
+ */
+export async function getEmailWorkflow(emailId: string): Promise<WorkflowResponse> {
+  const data = await request<WorkflowResponse>(`/emails/${emailId}/workflow`);
+  // Convert snake_case to camelCase for history items
+  return {
+    ...data,
+    history: data.history.map((item) => ({
+      ...item,
+      triggeredBy: (item as unknown as { triggered_by: string }).triggered_by,
+    })),
+  };
+}
+
+/**
+ * 转换工作流状态
+ * @param emailId 邮件 ID
+ * @param newState 新状态
+ * @param triggeredBy 触发者
+ * @param reason 原因
+ * @param metadata 元数据
+ */
+export async function transitionWorkflowState(
+  emailId: string,
+  newState: string,
+  triggeredBy: string,
+  reason?: string,
+  metadata?: Record<string, unknown>
+): Promise<{ workflow: WorkflowResponse; message: string }> {
+  return request<{ workflow: WorkflowResponse; message: string }>(
+    `/emails/${emailId}/workflow/transition`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        new_state: newState,
+        triggered_by: triggeredBy,
+        reason,
+        metadata,
+      }),
+    }
+  );
+}
+
+/**
+ * 检查是否需要审批
+ * @param emailId 邮件 ID
+ * @param amount 金额
+ * @param threshold 审批阈值
+ */
+export async function checkApprovalRequired(
+  emailId: string,
+  amount: number,
+  threshold: number = 10000
+): Promise<{ requires_approval: boolean; reason: string; next_state: string }> {
+  const params = new URLSearchParams({
+    amount: amount.toString(),
+    threshold: threshold.toString(),
+  });
+  return request(`/emails/${emailId}/workflow/check-approval?${params}`);
+}

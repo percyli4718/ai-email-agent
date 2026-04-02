@@ -1043,3 +1043,95 @@ class QuoteGenerateResponse(BaseModel):
     """
     quote: QuoteSchema
     message: str
+
+
+# ==================== Email Workflow Schemas ====================
+
+
+class WorkflowHistoryItem(BaseModel):
+    """
+    工作流历史记录项 Schema
+
+    作用:
+        定义工作流状态变更历史的数据结构。
+
+    字段说明:
+        id: int 类型，历史记录 ID
+        workflow_id: int 类型，工作流 ID
+        from_state: str 类型，原状态
+        to_state: str 类型，新状态
+        triggered_by: str 类型，触发者 (system/agent/user/approval_rule)
+        reason: Optional[str] 类型，变更原因
+        metadata: Optional[Dict] 类型，额外元数据
+        created_at: str 类型，创建时间 (ISO 8601)
+
+    使用场景:
+        - 作为工作流历史 API 响应项
+        - 前端展示状态变更时间线
+    """
+    id: int
+    workflow_id: int
+    from_state: str
+    to_state: str
+    triggered_by: str
+    reason: Optional[str] = None
+    metadata: Optional[Dict] = None
+    created_at: str
+
+
+class WorkflowResponse(BaseModel):
+    """
+    工作流响应 Schema
+
+    作用:
+        定义 GET /api/emails/{id}/workflow 响应的数据结构。
+
+    字段说明:
+        id: int 类型，工作流 ID
+        email_id: str 类型，邮件 ID
+        current_state: str 类型，当前状态
+            pending/processing/awaiting_approval/approved/rejected/completed/failed/cancelled
+        requires_approval: bool 类型，是否需要审批
+        approval_reason: Optional[str] 类型，审批原因
+        approval_amount: Optional[float] 类型，审批金额
+        created_at: str 类型，创建时间
+        updated_at: str 类型，更新时间
+        history: List[WorkflowHistoryItem] 类型，历史记录列表
+
+    使用场景:
+        - 作为工作流 API 的响应模型
+        - 前端展示流程时间线
+    """
+    id: int
+    email_id: str
+    current_state: str
+    requires_approval: bool
+    approval_reason: Optional[str] = None
+    approval_amount: Optional[float] = None
+    created_at: str
+    updated_at: str
+    history: List[WorkflowHistoryItem] = []
+
+
+class WorkflowTransitionRequest(BaseModel):
+    """
+    工作流状态转换请求 Schema
+
+    作用:
+        定义 POST /api/emails/{id}/workflow/transition 请求的数据结构。
+
+    字段说明:
+        new_state: str 类型，新状态
+        triggered_by: str 类型，触发者 (system/agent/user/approval_rule)
+        reason: Optional[str] 类型，变更原因
+        metadata: Optional[Dict] 类型，额外元数据
+
+    使用场景:
+        - 前端提交状态转换请求
+        - 系统内部状态流转
+    """
+    new_state: str
+    triggered_by: str
+    reason: Optional[str] = None
+    metadata: Optional[Dict] = None
+

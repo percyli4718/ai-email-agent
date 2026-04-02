@@ -48,6 +48,8 @@ from email_agent.api.schemas import (
     QuoteListResponse,
     QuoteGenerateRequest,
     QuoteGenerateResponse,
+    WorkflowResponse,
+    WorkflowTransitionRequest,
 )
 from email_agent.observability.metrics import metrics
 from email_agent.observability.tracing import tracer
@@ -968,6 +970,118 @@ async def reject_request(request_id: int, action: ApprovalAction):
     return {"message": "Request rejected", "request_id": request_id}
 
 
+# ==================== Email Workflow Endpoints ====================
+
+
+@router.get("/emails/{email_id}/workflow", response_model=WorkflowResponse)
+async def get_email_workflow(email_id: str):
+    """
+    获取邮件工作流详情
+
+    参数:
+        email_id: str 类型，邮件 ID
+
+    返回:
+        WorkflowResponse: 包含工作流状态和历史记录
+
+    使用场景:
+        - 前端展示流程时间线
+        - 查询邮件处理状态
+        - 审计流程历史
+    """
+    workflow = await db.get_email_workflow(email_id)
+
+    if not workflow:
+        # 如果工作流不存在，创建一个初始工作流
+        workflow = await db.create_email_workflow(email_id=email_id, initial_state="pending")
+
+    if not workflow:
+        raise HTTPException(status_code=404, detail="Email not found")
+
+    return workflow
+
+
+@router.post("/emails/{email_id}/workflow/transition")
+async def transition_workflow_state(email_id: str, request: WorkflowTransitionRequest):
+    """
+    转换邮件工作流状态
+
+    参数:
+        email_id: str 类型，邮件 ID
+        request: WorkflowTransitionRequest 类型，状态转换请求
+
+    返回:
+        更新后的工作流
+
+    状态机流转规则:
+        pending → processing → awaiting_approval → approved → completed
+                                    ↓                    ↓
+                                rejected            failed/cancelled
+
+    使用场景:
+        - 系统自动状态流转
+        - 用户手动审批操作
+        - Agent 执行完成更新
+    """
+    result = await db.transition_workflow_state(
+        email_id=email_id,
+        new_state=request.new_state,
+        triggered_by=request.triggered_by,
+        reason=request.reason,
+        metadata=request.metadata
+    )
+
+    if not result:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid state transition or workflow not found"
+        )
+
+    return {"workflow": result, "message": "State transitioned successfully"}
+
+
+@router.post("/emails/{email_id}/workflow/check-approval")
+async def check_approval_required(
+    email_id: str,
+    amount: float = Query(..., description="Amount to check against threshold"),
+    threshold: float = Query(default=10000.0, description="Approval threshold")
+):
+    """
+    检查是否需要审批
+
+    参数:
+        email_id: str 类型，邮件 ID
+        amount: float 类型，金额
+        threshold: float 类型，审批阈值 (默认 10000)
+
+    返回:
+        {"requires_approval": bool, "reason": str}
+
+    使用场景:
+        - 报价生成后自动检查审批要求
+        - 高金额交易触发审批流程
+
+    自动审批规则:
+        - 金额 > $10000: 需要审批
+        - 新客户首次交易：需要审批 (未来扩展)
+        - 特殊付款条款：需要审批 (未来扩展)
+    """
+    requires_approval = await db.check_approval_required(email_id, amount, threshold)
+
+    if requires_approval:
+        return {
+            "requires_approval": True,
+            "reason": f"Amount ${amount} exceeds threshold ${threshold}",
+            "next_state": "awaiting_approval"
+        }
+
+    return {
+        "requires_approval": False,
+        "reason": "Amount within threshold",
+        "next_state": "approved"
+    }
+
+
 # ==================== 报价生成器端点 ====================
 
 
@@ -1201,3 +1315,107 @@ async def get_email_quotes(email_id: str):
 async def health_check():
     """健康检查端点"""
     return {"status": "healthy", "timestamp": datetime.utcnow()}
+
+
+# ==================== Agent 监控端点 ====================
+
+
+@router.get("/agents/executions")
+async def list_agent_executions(limit: int = Query(default=50, ge=1, le=200)):
+    """
+    获取 Agent 执行历史记录
+
+    参数:
+        limit: int 类型，返回数量限制 (默认 50, 1-200)
+
+    返回:
+        Agent 执行记录列表
+    """
+    executions = await db.get_agent_executions(limit=limit)
+    return {"executions": executions, "total": len(executions)}
+
+
+@router.get("/agents/executions/{task_id}")
+async def get_execution_detail(task_id: str):
+    """
+    获取单个执行详情
+
+    参数:
+        task_id: str 类型，任务 ID
+
+    返回:
+        执行详情字典
+    """
+    detail = await db.get_execution_detail(task_id)
+    if not detail:
+        raise HTTPException(status_code=404, detail=f"Execution not found for task {task_id}")
+    return detail
+
+
+@router.get("/agents/metrics")
+async def get_agent_metrics():
+    """
+    获取 Agent 性能指标
+
+    返回:
+        Agent 性能指标列表
+    """
+    metrics = await db.get_agent_metrics()
+    return metrics
+
+
+@router.get("/metrics/cost-stats")
+async def get_cost_stats(days: int = Query(default=30, ge=1, le=365)):
+    """
+    获取成本统计数据
+
+    参数:
+        days: int 类型，统计天数 (默认 30)
+
+    返回:
+        每日成本统计列表
+    """
+    stats = await db.get_cost_stats(days=days)
+    return {"stats": stats, "days": days}
+
+
+@router.get("/metrics/cost-trend")
+async def get_cost_trend(days: int = Query(default=30, ge=1, le=365)):
+    """
+    获取成本趋势数据
+
+    参数:
+        days: int 类型，统计天数 (默认 30)
+
+    返回:
+        成本趋势数据点列表
+    """
+    trend = await db.get_cost_trend(days=days)
+    return {"trend": trend, "days": days}
+
+
+@router.get("/metrics/performance-trend")
+async def get_performance_trend(days: int = Query(default=30, ge=1, le=365)):
+    """
+    获取性能趋势数据
+
+    参数:
+        days: int 类型，统计天数 (默认 30)
+
+    返回:
+        性能趋势数据点列表
+    """
+    trend = await db.get_performance_trend(days=days)
+    return {"trend": trend, "days": days}
+
+
+@router.get("/metrics/dashboard")
+async def get_monitoring_dashboard():
+    """
+    获取监控仪表板汇总数据
+
+    返回:
+        包含汇总指标、最近执行、趋势数据的字典
+    """
+    dashboard = await db.get_monitoring_dashboard()
+    return dashboard

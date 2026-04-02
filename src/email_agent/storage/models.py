@@ -238,6 +238,14 @@ class Email(Base):
         cascade="all, delete-orphan"
     )
 
+    # 关系：一封邮件对应一个工作流
+    workflow: Mapped[Optional["EmailWorkflow"]] = relationship(
+        "EmailWorkflow",
+        back_populates="email",
+        uselist=False,
+        cascade="all, delete-orphan"
+    )
+
     # 索引
     __table_args__ = (
         Index("ix_emails_status", "status"),
@@ -1090,6 +1098,196 @@ class QuoteItem(Base):
     def __repr__(self) -> str:
         """返回报价项目的字符串表示，用于调试"""
         return f"<QuoteItem(id={self.id}, product='{self.product_name}', quantity={self.quantity}, price={self.unit_price})>"
+
+
+# ============================================================================
+# Email Workflow Models - 邮件工作流模型
+# ============================================================================
+
+
+class EmailWorkflow(Base):
+    """
+    邮件工作流状态模型
+
+    作用:
+        追踪邮件处理的工作流状态。
+        每封邮件一条工作流记录，用于状态机管理。
+
+    表名：email_workflows
+
+    状态机流转:
+        pending → processing → awaiting_approval → approved → completed
+                                    ↓                    ↓
+                                rejected            failed/cancelled
+
+    字段说明:
+        id: int 类型，主键 (自增)
+            工作流唯一标识符
+
+        email_id: str 类型，外键 (唯一)
+            关联的邮件 ID
+
+        current_state: str 类型，当前状态
+            pending/processing/awaiting_approval/approved/rejected/completed/failed/cancelled
+
+        requires_approval: bool 类型，是否需要审批
+            True 表示需要人工审批
+
+        approval_reason: str 类型，审批原因 (可选)
+            如："high_amount", "new_customer", "special_terms"
+
+        approval_amount: float 类型，审批金额 (可选)
+            触发审批的金额
+
+        created_at: datetime 类型，创建时间
+            工作流创建时间
+
+        updated_at: datetime 类型，更新时间
+            工作流最后更新时间
+
+    关系:
+        email: 一对一关系，一个工作流属于一封邮件
+        history: 一对多关系，一个工作流有多个历史记录
+
+    使用场景:
+        - 追踪邮件处理状态
+        - 管理审批流程
+        - 状态机流转控制
+    """
+    __tablename__ = "email_workflows"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    email_id: Mapped[str] = mapped_column(
+        String(64),
+        ForeignKey("emails.id", ondelete="CASCADE"),
+        unique=True,
+        nullable=False,
+        index=True
+    )
+    current_state: Mapped[str] = mapped_column(
+        String(30),
+        default="pending",
+        index=True,
+        comment="pending/processing/awaiting_approval/approved/rejected/completed/failed/cancelled"
+    )
+    requires_approval: Mapped[bool] = mapped_column(Boolean, default=False)
+    approval_reason: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    approval_amount: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # 关系：一个工作流属于一封邮件
+    email: Mapped["Email"] = relationship(
+        "Email",
+        back_populates="workflow"
+    )
+
+    # 关系：一个工作流有多个历史记录
+    history: Mapped[List["WorkflowHistory"]] = relationship(
+        "WorkflowHistory",
+        back_populates="workflow",
+        cascade="all, delete-orphan"
+    )
+
+    def to_dict(self) -> dict:
+        """转换为字典"""
+        return {
+            "id": self.id,
+            "email_id": self.email_id,
+            "current_state": self.current_state,
+            "requires_approval": self.requires_approval,
+            "approval_reason": self.approval_reason,
+            "approval_amount": self.approval_amount,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None
+        }
+
+    def __repr__(self) -> str:
+        """返回工作流的字符串表示，用于调试"""
+        return f"<EmailWorkflow(id={self.id}, email_id='{self.email_id}', state='{self.current_state}')>"
+
+
+class WorkflowHistory(Base):
+    """
+    工作流历史记录模型
+
+    作用:
+        记录工作流状态变更的历史。
+        每次状态变更创建一条历史记录，用于审计和追踪。
+
+    表名：workflow_history
+
+    字段说明:
+        id: int 类型，主键 (自增)
+            历史记录唯一标识符
+
+        workflow_id: int 类型，外键
+            关联的 workflow ID
+
+        from_state: str 类型，原状态
+            变更前的状态
+
+        to_state: str 类型，新状态
+            变更后的状态
+
+        triggered_by: str 类型，触发者
+            如："system", "agent", "user", "approval_rule"
+
+        reason: str 类型，变更原因 (可选)
+            状态变更的原因说明
+
+        metadata: JSON 类型，元数据 (可选)
+            额外的元数据信息
+
+        created_at: datetime 类型，创建时间
+            历史记录创建时间
+
+    关系:
+        workflow: 多对一关系，多个历史记录属于一个工作流
+
+    使用场景:
+        - 审计工作流变更
+        - 追踪状态流转历史
+        - 调试流程问题
+    """
+    __tablename__ = "workflow_history"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    workflow_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("email_workflows.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True
+    )
+    from_state: Mapped[str] = mapped_column(String(30), nullable=False)
+    to_state: Mapped[str] = mapped_column(String(30), nullable=False)
+    triggered_by: Mapped[str] = mapped_column(String(50), nullable=False)
+    reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    extra_data: Mapped[Optional[Dict]] = mapped_column(JSON, nullable=True)  # 改名避免与 SQLAlchemy 保留字冲突
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+    # 关系：多个历史记录属于一个工作流
+    workflow: Mapped["EmailWorkflow"] = relationship(
+        "EmailWorkflow",
+        back_populates="history"
+    )
+
+    def to_dict(self) -> dict:
+        """转换为字典"""
+        return {
+            "id": self.id,
+            "workflow_id": self.workflow_id,
+            "from_state": self.from_state,
+            "to_state": self.to_state,
+            "triggered_by": self.triggered_by,
+            "reason": self.reason,
+            "extra_data": self.extra_data,
+            "created_at": self.created_at.isoformat() if self.created_at else None
+        }
+
+    def __repr__(self) -> str:
+        """返回历史记录的字符串表示，用于调试"""
+        return f"<WorkflowHistory(id={self.id}, workflow_id={self.workflow_id}, from='{self.from_state}', to='{self.to_state}')>"
 
 
 # ==================== 数据库初始化辅助函数 ====================

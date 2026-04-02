@@ -24,6 +24,8 @@ export interface AnalysisSection {
   title: string;
   badge: string;
   fields: AnalysisField[];
+  icon?: string; // 可选图标
+  layer?: string; // 可选层级标识
 }
 
 export interface Agent {

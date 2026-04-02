@@ -1446,6 +1446,603 @@ class Database:
             logger.warning("quote_not_found_for_deletion", quote_id=quote_id)
             return False
 
+    # ========================================================================
+    # Email Workflow Methods - 邮件工作流方法
+    # ========================================================================
+
+    async def create_email_workflow(
+        self,
+        email_id: str,
+        initial_state: str = "pending",
+        requires_approval: bool = False,
+        approval_reason: str = None,
+        approval_amount: float = None
+    ) -> dict:
+        """
+        创建邮件工作流
+
+        功能描述:
+            为邮件创建初始工作流记录。
+
+        参数:
+            email_id: str 类型，邮件 ID
+            initial_state: str 类型，初始状态
+            requires_approval: bool 类型，是否需要审批
+            approval_reason: str 类型，审批原因
+            approval_amount: float 类型，审批金额
+
+        返回值:
+            dict: 创建的工作流字典
+        """
+        from email_agent.storage.models import EmailWorkflow, WorkflowHistory
+        from sqlalchemy import insert, select
+
+        async with self.session() as session:
+            # 检查工作流是否已存在
+            stmt = select(EmailWorkflow).where(EmailWorkflow.email_id == email_id)
+            result = await session.execute(stmt)
+            existing = result.scalar_one_or_none()
+
+            if existing:
+                return existing.to_dict()
+
+            # 创建工作流
+            stmt = insert(EmailWorkflow).values(
+                email_id=email_id,
+                current_state=initial_state,
+                requires_approval=requires_approval,
+                approval_reason=approval_reason,
+                approval_amount=approval_amount
+            )
+            await session.execute(stmt)
+            await session.commit()
+
+            # 查询创建的工作流
+            stmt = select(EmailWorkflow).where(EmailWorkflow.email_id == email_id)
+            result = await session.execute(stmt)
+            workflow = result.scalar_one_or_none()
+
+            # 创建初始历史记录
+            if workflow:
+                stmt = insert(WorkflowHistory).values(
+                    workflow_id=workflow.id,
+                    from_state="none",
+                    to_state=initial_state,
+                    triggered_by="system",
+                    reason="Workflow created"
+                )
+                await session.execute(stmt)
+                await session.commit()
+
+                return workflow.to_dict()
+
+            return {}
+
+    async def transition_workflow_state(
+        self,
+        email_id: str,
+        new_state: str,
+        triggered_by: str,
+        reason: str = None,
+        metadata: dict = None
+    ) -> dict:
+        """
+        转换工作流状态
+
+        功能描述:
+            将邮件工作流转换到新状态，并记录历史。
+
+        状态机流转规则:
+            pending → processing → awaiting_approval → approved → completed
+                                        ↓                    ↓
+                                    rejected            failed/cancelled
+
+        参数:
+            email_id: str 类型，邮件 ID
+            new_state: str 类型，新状态
+            triggered_by: str 类型，触发者 (system/agent/user/approval_rule)
+            reason: str 类型，变更原因
+            metadata: dict 类型，额外元数据
+
+        返回值:
+            dict: 更新后的工作流字典，失败返回空字典
+        """
+        from email_agent.storage.models import EmailWorkflow, WorkflowHistory
+        from sqlalchemy import select, update, insert
+
+        valid_transitions = {
+            "pending": ["processing", "failed"],
+            "processing": ["awaiting_approval", "approved", "completed", "failed"],
+            "awaiting_approval": ["approved", "rejected"],
+            "approved": ["completed", "failed"],
+            "rejected": ["pending"],  # 可以重新提交
+            "completed": [],
+            "failed": ["pending"],  # 可以重试
+            "cancelled": []
+        }
+
+        async with self.session() as session:
+            # 获取当前工作流
+            stmt = select(EmailWorkflow).where(EmailWorkflow.email_id == email_id)
+            result = await session.execute(stmt)
+            workflow = result.scalar_one_or_none()
+
+            if not workflow:
+                logger.warning("workflow_not_found_for_transition", email_id=email_id)
+                return {}
+
+            current_state = workflow.current_state
+
+            # 验证状态转换是否合法
+            if new_state not in valid_transitions.get(current_state, []):
+                logger.warning(
+                    "invalid_state_transition",
+                    email_id=email_id,
+                    from_state=current_state,
+                    to_state=new_state
+                )
+                return {}
+
+            # 更新状态
+            stmt = update(EmailWorkflow).where(
+                EmailWorkflow.email_id == email_id
+            ).values(
+                current_state=new_state,
+                updated_at=datetime.utcnow()
+            )
+            await session.execute(stmt)
+
+            # 记录历史
+            stmt = insert(WorkflowHistory).values(
+                workflow_id=workflow.id,
+                from_state=current_state,
+                to_state=new_state,
+                triggered_by=triggered_by,
+                reason=reason,
+                extra_data=metadata
+            )
+            await session.execute(stmt)
+            await session.commit()
+
+            # 返回更新后的工作流
+            stmt = select(EmailWorkflow).where(EmailWorkflow.email_id == email_id)
+            result = await session.execute(stmt)
+            updated_workflow = result.scalar_one_or_none()
+
+            logger.info(
+                "workflow_state_transitioned",
+                email_id=email_id,
+                from_state=current_state,
+                to_state=new_state,
+                triggered_by=triggered_by
+            )
+
+            return updated_workflow.to_dict() if updated_workflow else {}
+
+    async def get_email_workflow(self, email_id: str) -> dict:
+        """
+        获取邮件工作流详情
+
+        功能描述:
+            获取邮件的工作流状态和历史记录。
+
+        参数:
+            email_id: str 类型，邮件 ID
+
+        返回值:
+            dict: 包含工作流和历史的字典
+        """
+        from email_agent.storage.models import EmailWorkflow, WorkflowHistory
+        from sqlalchemy import select
+
+        async with self.session() as session:
+            # 获取工作流
+            stmt = select(EmailWorkflow).where(EmailWorkflow.email_id == email_id)
+            result = await session.execute(stmt)
+            workflow = result.scalar_one_or_none()
+
+            if not workflow:
+                return {}
+
+            # 获取历史记录
+            stmt = select(WorkflowHistory).where(
+                WorkflowHistory.workflow_id == workflow.id
+            ).order_by(WorkflowHistory.created_at.asc())
+            result = await session.execute(stmt)
+            history = result.scalars().all()
+
+            return {
+                **workflow.to_dict(),
+                "history": [h.to_dict() for h in history]
+            }
+
+    async def check_approval_required(self, email_id: str, amount: float, threshold: float = 10000.0) -> bool:
+        """
+        检查是否需要审批
+
+        功能描述:
+            根据金额判断是否需要审批（金额 > $10000 触发审批）。
+
+        参数:
+            email_id: str 类型，邮件 ID
+            amount: float 类型，金额
+            threshold: float 类型，审批阈值 (默认 10000)
+
+        返回值:
+            bool: True 表示需要审批
+        """
+        if amount > threshold:
+            # 更新工作流标记需要审批
+            await self.transition_workflow_state(
+                email_id=email_id,
+                new_state="awaiting_approval",
+                triggered_by="approval_rule",
+                reason=f"Amount ${amount} exceeds threshold ${threshold}",
+                metadata={"amount": amount, "threshold": threshold}
+            )
+            return True
+        return False
+
+    # ========================================================================
+    # Agent Monitoring Methods - Agent 监控方法
+    # ========================================================================
+
+    async def get_agent_executions(self, limit: int = 50, email_id: Optional[str] = None) -> list[dict]:
+        """
+        获取 Agent 执行历史记录
+
+        功能描述:
+            查询最近的 Agent 执行记录，支持按邮件 ID 过滤。
+
+        参数:
+            limit: int 类型，返回数量限制 (默认 50)
+            email_id: Optional[str] 类型，邮件 ID 过滤 (可选)
+
+        返回值:
+            list[dict]: Agent 执行记录列表
+        """
+        from email_agent.storage.models import AgentExecution
+        from sqlalchemy import select, desc
+
+        async with self.session() as session:
+            stmt = select(AgentExecution).order_by(desc(AgentExecution.started_at)).limit(limit)
+
+            if email_id:
+                stmt = stmt.where(AgentExecution.email_id == email_id)
+
+            result = await session.execute(stmt)
+            executions = result.scalars().all()
+
+            return [
+                {
+                    "id": ex.id,
+                    "task_id": ex.task_id,
+                    "email_id": ex.email_id,
+                    "agent_name": ex.agent_name,
+                    "status": ex.status,
+                    "budget_allocated": ex.budget_allocated,
+                    "actual_cost": ex.actual_cost,
+                    "started_at": ex.started_at.isoformat() if ex.started_at else None,
+                    "completed_at": ex.completed_at.isoformat() if ex.completed_at else None,
+                    "error_message": ex.error_message,
+                    "result_summary": ex.output_data.get("summary") if ex.output_data else None,
+                }
+                for ex in executions
+            ]
+
+    async def get_execution_detail(self, task_id: str) -> Optional[dict]:
+        """
+        获取单个执行详情
+
+        功能描述:
+            根据 task_id 查询 Agent 执行的完整详情。
+
+        参数:
+            task_id: str 类型，任务 ID
+
+        返回值:
+            Optional[dict]: 执行详情字典，不存在返回 None
+        """
+        from email_agent.storage.models import AgentExecution, Email
+        from sqlalchemy import select
+
+        async with self.session() as session:
+            stmt = select(AgentExecution).where(AgentExecution.task_id == task_id)
+            result = await session.execute(stmt)
+            execution = result.scalars().first()
+
+            if not execution:
+                return None
+
+            # 获取关联的邮件信息
+            email = None
+            if execution.email_id:
+                email_stmt = select(Email).where(Email.id == execution.email_id)
+                email_result = await session.execute(email_stmt)
+                email = email_result.scalars().first()
+
+            return {
+                "id": execution.id,
+                "task_id": execution.task_id,
+                "email_id": execution.email_id,
+                "agent_name": execution.agent_name,
+                "status": execution.status,
+                "budget_allocated": execution.budget_allocated,
+                "actual_cost": execution.actual_cost,
+                "started_at": execution.started_at.isoformat() if execution.started_at else None,
+                "completed_at": execution.completed_at.isoformat() if execution.completed_at else None,
+                "error_message": execution.error_message,
+                "result_summary": execution.output_data.get("summary") if execution.output_data else None,
+                "email_subject": email.subject if email else None,
+                "email_from": email.from_address if email else None,
+                "execution_steps": execution.output_data.get("steps") if execution.output_data else [],
+            }
+
+    async def get_agent_metrics(self) -> list[dict]:
+        """
+        获取 Agent 性能指标
+
+        功能描述:
+            聚合统计各 Agent 的执行指标。
+
+        参数:
+            无
+
+        返回值:
+            list[dict]: Agent 性能指标列表
+        """
+        from email_agent.storage.models import AgentExecution
+        from sqlalchemy import select, func
+
+        async with self.session() as session:
+            # 按 agent_name 分组统计
+            stmt = select(
+                AgentExecution.agent_name,
+                func.count(AgentExecution.id).label("total_executions"),
+                func.sum(func.case((AgentExecution.status == "completed", 1), else_=0)).label("successful_executions"),
+                func.sum(func.case((AgentExecution.status == "failed", 1), else_=0)).label("failed_executions"),
+                func.avg(AgentExecution.actual_cost).label("avg_cost"),
+                func.sum(AgentExecution.actual_cost).label("total_cost"),
+            ).group_by(AgentExecution.agent_name)
+
+            result = await session.execute(stmt)
+            rows = result.all()
+
+            return [
+                {
+                    "agent_name": row.agent_name,
+                    "total_executions": row.total_executions,
+                    "successful_executions": row.successful_executions,
+                    "failed_executions": row.failed_executions,
+                    "success_rate": row.successful_executions / max(1, row.total_executions),
+                    "avg_cost": row.avg_cost or 0,
+                    "total_cost": row.total_cost or 0,
+                    "avg_execution_time_ms": 0,  # 需要从 execution_steps 计算
+                }
+                for row in rows
+            ]
+
+    async def get_cost_stats(self, days: int = 30) -> list[dict]:
+        """
+        获取成本统计数据
+
+        功能描述:
+            按日期统计成本数据。
+
+        参数:
+            days: int 类型，统计天数 (默认 30)
+
+        返回值:
+            list[dict]: 每日成本统计列表
+        """
+        from email_agent.storage.models import EmailAnalysis, Email
+        from sqlalchemy import select, func, cast, Date
+        from datetime import datetime, timedelta
+
+        cutoff_date = datetime.utcnow() - timedelta(days=days)
+
+        async with self.session() as session:
+            stmt = (
+                select(
+                    cast(EmailAnalysis.created_at, Date).label("date"),
+                    func.sum(EmailAnalysis.cost).label("total_cost"),
+                    func.avg(EmailAnalysis.cost).label("avg_cost_per_email"),
+                    func.count(EmailAnalysis.id).label("email_count"),
+                )
+                .where(EmailAnalysis.created_at >= cutoff_date)
+                .group_by(cast(EmailAnalysis.created_at, Date))
+                .order_by(cast(EmailAnalysis.created_at, Date))
+            )
+
+            result = await session.execute(stmt)
+            rows = result.all()
+
+            return [
+                {
+                    "date": str(row.date),
+                    "total_cost": row.total_cost or 0,
+                    "avg_cost_per_email": row.avg_cost_per_email or 0,
+                    "email_count": row.email_count,
+                    "sonnet_cost": 0,  # 需要根据 model_used 拆分
+                    "haiku_cost": 0,
+                }
+                for row in rows
+            ]
+
+    async def get_cost_trend(self, days: int = 30) -> list[dict]:
+        """
+        获取成本趋势数据
+
+        功能描述:
+            按日期返回成本和邮件数量趋势。
+
+        参数:
+            days: int 类型，统计天数 (默认 30)
+
+        返回值:
+            list[dict]: 趋势数据点列表
+        """
+        from email_agent.storage.models import EmailAnalysis
+        from sqlalchemy import select, func, cast, Date
+        from datetime import datetime, timedelta
+
+        cutoff_date = datetime.utcnow() - timedelta(days=days)
+
+        async with self.session() as session:
+            stmt = (
+                select(
+                    cast(EmailAnalysis.created_at, Date).label("date"),
+                    func.sum(EmailAnalysis.cost).label("cost"),
+                    func.count(EmailAnalysis.id).label("emails"),
+                )
+                .where(EmailAnalysis.created_at >= cutoff_date)
+                .group_by(cast(EmailAnalysis.created_at, Date))
+                .order_by(cast(EmailAnalysis.created_at, Date))
+            )
+
+            result = await session.execute(stmt)
+            rows = result.all()
+
+            return [
+                {
+                    "date": str(row.date),
+                    "cost": row.cost or 0,
+                    "emails": row.emails,
+                }
+                for row in rows
+            ]
+
+    async def get_performance_trend(self, days: int = 30) -> list[dict]:
+        """
+        获取性能趋势数据
+
+        功能描述:
+            按日期返回平均处理时间和邮件数量趋势。
+
+        参数:
+            days: int 类型，统计天数 (默认 30)
+
+        返回值:
+            list[dict]: 趋势数据点列表
+        """
+        from email_agent.storage.models import EmailAnalysis
+        from sqlalchemy import select, func, cast, Date
+        from datetime import datetime, timedelta
+
+        cutoff_date = datetime.utcnow() - timedelta(days=days)
+
+        async with self.session() as session:
+            stmt = (
+                select(
+                    cast(EmailAnalysis.created_at, Date).label("date"),
+                    func.avg(EmailAnalysis.processing_time_ms).label("avg_time"),
+                    func.count(EmailAnalysis.id).label("emails"),
+                )
+                .where(EmailAnalysis.created_at >= cutoff_date)
+                .group_by(cast(EmailAnalysis.created_at, Date))
+                .order_by(cast(EmailAnalysis.created_at, Date))
+            )
+
+            result = await session.execute(stmt)
+            rows = result.all()
+
+            return [
+                {
+                    "date": str(row.date),
+                    "avgTime": row.avg_time or 0,
+                    "emails": row.emails,
+                }
+                for row in rows
+            ]
+
+    async def get_monitoring_dashboard(self) -> dict:
+        """
+        获取监控仪表板汇总数据
+
+        功能描述:
+            返回监控页面的完整汇总数据。
+
+        参数:
+            无
+
+        返回值:
+            dict: 包含汇总指标、最近执行、趋势数据的字典
+        """
+        from email_agent.storage.models import AgentExecution, EmailAnalysis
+        from sqlalchemy import select, func
+        from datetime import datetime, timedelta
+
+        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+
+        async with self.session() as session:
+            # 今日统计
+            today_stmt = select(
+                func.count(AgentExecution.id).label("total_executions"),
+                func.sum(func.case((AgentExecution.status == "completed", 1), else_=0)).label("successful"),
+                func.sum(AgentExecution.actual_cost).label("total_cost"),
+            ).where(AgentExecution.started_at >= today_start)
+
+            today_result = await session.execute(today_stmt)
+            today_row = today_result.one()
+
+            # 平均处理时间
+            avg_time_stmt = select(func.avg(EmailAnalysis.processing_time_ms)).where(
+                EmailAnalysis.created_at >= today_start
+            )
+            avg_time_result = await session.execute(avg_time_stmt)
+            avg_time = avg_time_result.scalar() or 0
+
+            # 最近执行
+            recent_stmt = (
+                select(AgentExecution)
+                .order_by(func.desc(AgentExecution.started_at))
+                .limit(20)
+            )
+            recent_result = await session.execute(recent_stmt)
+            recent_executions = recent_result.scalars().all()
+
+            # 活跃 Agent 数
+            active_stmt = select(func.count(func.distinct(AgentExecution.agent_name))).where(
+                AgentExecution.status == "running"
+            )
+            active_result = await session.execute(active_stmt)
+            active_agents = active_result.scalar() or 0
+
+            # 成本趋势 (最近 7 天)
+            cost_trend = await self.get_cost_trend(7)
+            performance_trend = await self.get_performance_trend(7)
+
+            total_executions = today_row.total_executions or 0
+            successful = today_row.successful or 0
+            total_cost = today_row.total_cost or 0
+
+            return {
+                "summary": {
+                    "totalExecutions": total_executions,
+                    "successRate": successful / max(1, total_executions),
+                    "totalCostToday": total_cost,
+                    "avgCostPerEmail": total_cost / max(1, total_executions),
+                    "avgProcessingTimeMs": avg_time,
+                    "activeAgents": active_agents,
+                },
+                "recentExecutions": [
+                    {
+                        "id": ex.id,
+                        "task_id": ex.task_id,
+                        "email_id": ex.email_id,
+                        "agent_name": ex.agent_name,
+                        "status": ex.status,
+                        "budget_allocated": ex.budget_allocated,
+                        "actual_cost": ex.actual_cost,
+                        "started_at": ex.started_at.isoformat() if ex.started_at else None,
+                        "completed_at": ex.completed_at.isoformat() if ex.completed_at else None,
+                    }
+                    for ex in recent_executions
+                ],
+                "costTrend": cost_trend,
+                "performanceTrend": performance_trend,
+            }
+
 
 # 全局数据库实例 (延迟初始化)
 _db_instance: Optional[Database] = None
