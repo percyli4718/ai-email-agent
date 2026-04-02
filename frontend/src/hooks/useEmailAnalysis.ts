@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { API_BASE_URL, AnalysisSection } from '../types/api';
 
 const fetchEmailAnalysis = async (emailId: string): Promise<AnalysisSection[]> => {
-  const response = await fetch(`${API_BASE_URL}/api/emails/${emailId}/analysis`);
+  const response = await fetch(`${API_BASE_URL}/emails/${emailId}/analysis`);
   if (!response.ok) {
     throw new Error('获取邮件分析失败');
   }

@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { API_BASE_URL, Agent } from '../types/api';
 
 const fetchAgentsStatus = async (): Promise<Agent[]> => {
-  const response = await fetch(`${API_BASE_URL}/api/agents/status`);
+  const response = await fetch(`${API_BASE_URL}/agents/status`);
   if (!response.ok) {
     throw new Error('获取 Agent 状态失败');
   }

@@ -1,5 +1,5 @@
 // API 基础 URL
-export const API_BASE_URL = 'http://localhost:8000';
+export const API_BASE_URL = '/api';
 
 // API 类型定义
 export interface Email {

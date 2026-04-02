@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { API_BASE_URL, PromptVersion } from '../types/api';
 
 const fetchPromptVersions = async (): Promise<PromptVersion[]> => {
-  const response = await fetch(`${API_BASE_URL}/api/prompts/versions`);
+  const response = await fetch(`${API_BASE_URL}/prompts/versions`);
   if (!response.ok) {
     throw new Error('获取 Prompt 版本失败');
   }

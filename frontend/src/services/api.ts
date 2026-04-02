@@ -1,5 +1,5 @@
 // API 基础 URL
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = '/api';
 
 // 从 types/api.ts 导入类型
 import type {

@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { API_BASE_URL, Metric } from '../types/api';
 
 const fetchMetrics = async (): Promise<Metric[]> => {
-  const response = await fetch(`${API_BASE_URL}/api/metrics`);
+  const response = await fetch(`${API_BASE_URL}/metrics`);
   if (!response.ok) {
     throw new Error('获取系统指标失败');
   }

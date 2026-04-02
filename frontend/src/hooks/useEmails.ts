@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { API_BASE_URL, Email } from '../types/api';
 
 const fetchEmails = async (): Promise<Email[]> => {
-  const response = await fetch(`${API_BASE_URL}/api/emails`);
+  const response = await fetch(`${API_BASE_URL}/emails`);
   if (!response.ok) {
     throw new Error('获取邮件列表失败');
   }

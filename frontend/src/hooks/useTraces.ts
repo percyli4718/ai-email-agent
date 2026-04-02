@@ -4,7 +4,7 @@ import { API_BASE_URL, TraceSpan } from '../types/api';
 const fetchTraces = async (): Promise<TraceSpan[]> => {
   // 后端 API: GET /api/traces?limit=10 返回 TraceResponse[] 数组
   // TraceResponse 包含 { id, name, duration_ms, tags, children }
-  const response = await fetch(`${API_BASE_URL}/api/traces?limit=20`);
+  const response = await fetch(`${API_BASE_URL}/traces?limit=20`);
   if (!response.ok) {
     throw new Error('获取追踪记录失败');
   }
