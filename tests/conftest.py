@@ -11,6 +11,12 @@ from email_agent.main import app
 from email_agent.storage.database import Database
 
 
+@pytest.fixture(scope="session")
+def playwright_base_url():
+    """Playwright 测试基础 URL"""
+    return "http://localhost:3000"
+
+
 @pytest.fixture
 def client():
     """

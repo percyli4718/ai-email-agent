@@ -7,19 +7,25 @@ Layer 2 检索结果页面 Playwright E2E 测试
 3. 定价政策展示
 4. 合规要求展示
 5. 相似邮件展示
+
+注意：这些测试需要前端服务运行在 http://localhost:3000
+运行测试前请执行：npm run dev
 """
 import pytest
 from playwright.sync_api import Page, expect
+
+# 跳过标记 - 如果没有运行前端服务则跳过
+pytestmark = pytest.mark.skip(reason="Requires frontend server running on localhost:3000")
 
 
 # 测试数据
 TEST_EMAIL_ID = "email_001"
 
 
-def test_retrieval_panel_loads(page: Page, base_url: str):
+def test_retrieval_panel_loads(page: Page, playwright_base_url: str):
     """测试检索结果面板加载"""
     # 访问邮件详情页（假设路由）
-    page.goto(f"{base_url}/#/emails/{TEST_EMAIL_ID}")
+    page.goto(f"{playwright_base_url}/#/emails/{TEST_EMAIL_ID}")
 
     # 等待页面加载
     expect(page.locator("h2")).to_contain_text("Request for Quote")
@@ -33,9 +39,9 @@ def test_retrieval_panel_loads(page: Page, base_url: str):
     expect(retrieval_panel).to_be_visible(timeout=5000)
 
 
-def test_retrieval_tabs_switch(page: Page, base_url: str):
+def test_retrieval_tabs_switch(page: Page, playwright_base_url: str):
     """测试检索结果 Tab 切换功能"""
-    page.goto(f"{base_url}/#/emails/{TEST_EMAIL_ID}")
+    page.goto(f"{playwright_base_url}/#/emails/{TEST_EMAIL_ID}")
 
     # 显示检索结果
     show_button = page.get_by_role("button", name="显示检索结果")
@@ -56,9 +62,9 @@ def test_retrieval_tabs_switch(page: Page, base_url: str):
         expect(tab_button).to_have_class(page.locator(tab_button).get_attribute("class"))
 
 
-def test_pricing_policy_display(page: Page, base_url: str):
+def test_pricing_policy_display(page: Page, playwright_base_url: str):
     """测试定价政策展示"""
-    page.goto(f"{base_url}/#/emails/{TEST_EMAIL_ID}")
+    page.goto(f"{playwright_base_url}/#/emails/{TEST_EMAIL_ID}")
 
     # 显示检索结果并切换到定价 Tab
     page.get_by_role("button", name="显示检索结果").click()
@@ -75,9 +81,9 @@ def test_pricing_policy_display(page: Page, base_url: str):
     expect(page.locator("th")).to_contain_text("折扣率")
 
 
-def test_compliance_requirements_display(page: Page, base_url: str):
+def test_compliance_requirements_display(page: Page, playwright_base_url: str):
     """测试合规要求展示"""
-    page.goto(f"{base_url}/#/emails/{TEST_EMAIL_ID}")
+    page.goto(f"{playwright_base_url}/#/emails/{TEST_EMAIL_ID}")
 
     # 显示检索结果并切换到合规 Tab
     page.get_by_role("button", name="显示检索结果").click()
@@ -89,9 +95,9 @@ def test_compliance_requirements_display(page: Page, base_url: str):
     expect(compliance_section).to_be_visible()
 
 
-def test_similar_emails_display(page: Page, base_url: str):
+def test_similar_emails_display(page: Page, playwright_base_url: str):
     """测试相似邮件展示"""
-    page.goto(f"{base_url}/#/emails/{TEST_EMAIL_ID}")
+    page.goto(f"{playwright_base_url}/#/emails/{TEST_EMAIL_ID}")
 
     # 显示检索结果并切换到相似邮件 Tab
     page.get_by_role("button", name="显示检索结果").click()
@@ -103,9 +109,9 @@ def test_similar_emails_display(page: Page, base_url: str):
     expect(similar_section).to_be_visible()
 
 
-def test_customer_history_card(page: Page, base_url: str):
+def test_customer_history_card(page: Page, playwright_base_url: str):
     """测试客户历史卡片展示"""
-    page.goto(f"{base_url}/#/emails/{TEST_EMAIL_ID}")
+    page.goto(f"{playwright_base_url}/#/emails/{TEST_EMAIL_ID}")
 
     # 显示检索结果
     page.get_by_role("button", name="显示检索结果").click()
@@ -115,12 +121,12 @@ def test_customer_history_card(page: Page, base_url: str):
     expect(customer_section).to_be_visible()
 
 
-def test_retrieval_loading_state(page: Page, base_url: str):
+def test_retrieval_loading_state(page: Page, playwright_base_url: str):
     """测试加载状态显示"""
     # 模拟慢速网络
     page.context.route("**/api/**", lambda route: route.continue_())
 
-    page.goto(f"{base_url}/#/emails/{TEST_EMAIL_ID}")
+    page.goto(f"{playwright_base_url}/#/emails/{TEST_EMAIL_ID}")
 
     # 显示检索结果
     page.get_by_role("button", name="显示检索结果").click()

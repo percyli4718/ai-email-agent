@@ -112,7 +112,8 @@ class TestWorkflowTimeline:
 
         # Verify state nodes exist
         state_nodes = page.locator("[data-testid^='state-node-']")
-        expect(state_nodes).not.to_have_count(0)
+        count = state_nodes.count()
+        assert count > 0, "No state nodes found"
 
     def test_workflow_shows_current_state(self, page: Page, authenticated_page: Page):
         """Test that workflow highlights current state"""

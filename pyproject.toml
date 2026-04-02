@@ -28,4 +28,22 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 testpaths = ["tests"]
+addopts = "--cov=src/email_agent --cov-report=term-missing --cov-report=html:cov_html --cov-report=xml:cov.xml"
+
+[tool.coverage.run]
+branch = true
+omit = ["*/__main__.py", "*/main.py"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "@abstractmethod",
+]
+show_missing = true
