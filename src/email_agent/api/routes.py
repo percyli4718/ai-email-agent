@@ -50,6 +50,7 @@ from email_agent.api.schemas import (
     QuoteGenerateResponse,
     WorkflowResponse,
     WorkflowTransitionRequest,
+    RetrievalResultResponse,
 )
 from email_agent.observability.metrics import metrics
 from email_agent.observability.tracing import tracer
@@ -628,6 +629,50 @@ async def get_email(email_id: str):
         raise HTTPException(status_code=404, detail="Email not found")
 
     return email
+
+
+@router.get("/emails/{email_id}/retrieval", response_model=RetrievalResultResponse)
+async def get_email_retrieval(email_id: str):
+    """
+    获取指定邮件的 Layer 2 检索结果
+
+    参数:
+        email_id: str 类型，邮件唯一标识符
+
+    返回:
+        RetrievalResultResponse: 包含相似邮件、客户历史、定价政策、合规要求
+    """
+    from email_agent.layer2.retriever import ContextRetriever
+
+    # 从数据库获取邮件分类结果
+    email_data = await db.get_email_by_id(email_id)
+    if not email_data:
+        raise HTTPException(status_code=404, detail=f"Email not found: {email_id}")
+
+    # 获取分类结果
+    classification = email_data.get("classification", {})
+    if not classification:
+        # 如果没有分类结果，使用默认值
+        classification = {
+            "customer_region": email_data.get("region", "default"),
+            "products_mentioned": [],
+            "customer_email": email_data.get("from_address"),
+        }
+
+    # 使用检索器获取上下文
+    retriever = ContextRetriever(settings)
+    result = await retriever.retrieve(
+        email_id=email_id,
+        email_body=email_data.get("raw_content", ""),
+        classification=classification
+    )
+
+    return RetrievalResultResponse(
+        similar_emails=result.get("similar_emails", {}),
+        customer_history=result.get("customer_history"),
+        pricing_policy=result.get("pricing_policy", {"policies": [], "region": ""}),
+        compliance=result.get("compliance", {"requirements": [], "region": ""})
+    )
 
 
 @router.get("/agents/status", response_model=AgentStatusResponse)

@@ -7,10 +7,11 @@
  * - 显示 AI 分析结果
  * - 提供审批操作
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { useWorkflow } from '../hooks/useWorkflow';
 import { useEmailAnalysis } from '../hooks/useEmailAnalysis';
 import { WorkflowTimeline } from '../components/WorkflowTimeline';
+import { RetrievalResultPanel } from '../components/RetrievalResultPanel';
 import type { AnalysisSection } from '../types/api';
 
 // ============================================================================
@@ -112,6 +113,7 @@ const EmailDetailHeader: React.FC<{
 export const EmailDetail: React.FC<EmailDetailProps> = ({ emailId, onClose }) => {
   const { workflow, loading: workflowLoading } = useWorkflow(emailId);
   const { data: analysisSections } = useEmailAnalysis(emailId);
+  const [showRetrieval, setShowRetrieval] = useState(false);
 
   // Mock email data (in real app, this would come from API)
   const emailData = {
@@ -135,6 +137,26 @@ export const EmailDetail: React.FC<EmailDetailProps> = ({ emailId, onClose }) =>
       <div className="p-4 space-y-4">
         {/* Workflow Timeline */}
         <WorkflowTimeline workflow={workflow} loading={workflowLoading} />
+
+        {/* Layer 2 Retrieval Result Toggle */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowRetrieval(!showRetrieval)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              showRetrieval
+                ? 'bg-indigo-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            <span className="mr-1">🔍</span>
+            {showRetrieval ? '隐藏检索结果' : '显示检索结果'}
+          </button>
+        </div>
+
+        {/* Layer 2 Retrieval Result Panel */}
+        {showRetrieval && (
+          <RetrievalResultPanel emailId={emailId} />
+        )}
 
         {/* AI Analysis Sections */}
         {analysisSections && analysisSections.length > 0 && (

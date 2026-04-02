@@ -1135,3 +1135,34 @@ class WorkflowTransitionRequest(BaseModel):
     reason: Optional[str] = None
     metadata: Optional[Dict] = None
 
+
+class RetrievalResultResponse(BaseModel):
+    """
+    Layer 2 检索结果响应 Schema
+
+    作用:
+        定义 GET /api/emails/{id}/retrieval 响应的数据结构。
+        包含完整的上下文检索结果。
+
+    字段说明:
+        similar_emails: Dict 类型，相似邮件
+            ChromaDB 返回的相似邮件搜索结果
+
+        customer_history: Optional[Dict] 类型，客户历史
+            客户历史记录信息
+
+        pricing_policy: Dict 类型，定价政策
+            包含 policies 列表和 region
+
+        compliance: Dict 类型，合规要求
+            包含 requirements 列表和 region
+
+    使用场景:
+        - 作为检索结果 API 的响应模型
+        - 前端展示 Layer 2 检索结果详情
+    """
+    similar_emails: Dict[str, Any]
+    customer_history: Optional[Dict] = None
+    pricing_policy: Dict[str, Any]
+    compliance: Dict[str, Any]
+
