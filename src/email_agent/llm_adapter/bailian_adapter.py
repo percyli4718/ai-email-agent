@@ -67,8 +67,9 @@ class BailianAdapter(LLMAdapter):
             "stream": False
         }
 
-        # 发送请求
-        async with httpx.AsyncClient() as client:
+        # 发送请求 (禁用代理以避免 socks 协议不兼容)
+        transport = httpx.AsyncHTTPTransport(trust_env=False)
+        async with httpx.AsyncClient(transport=transport) as client:
             response = await client.post(
                 f"{self.base_url}/chat/completions",
                 headers={
