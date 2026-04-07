@@ -34,22 +34,22 @@ class ModelChoice(str, Enum):
         使用 Enum 确保类型安全和 IDE 代码补全。
 
     成员:
-        SONNET: Claude Sonnet 4 模型
+        SONNET: Claude Sonnet 模型
             - 成本较低，适合常规任务
             - 目标处理 80% 的请求
-            - 模型名：claude-sonnet-4-20250514
+            - 模型名：claude-sonnet-20241022
 
-        OPUS: Claude Opus 4 模型
+        OPUS: Claude Opus 模型
             - 成本较高，适合复杂任务
             - 处理约 20% 的高复杂度请求
-            - 模型名：claude-opus-4-20250514
+            - 模型名：claude-opus-20241022
 
     使用场景:
         - 作为 ModelRouter.route() 的返回值类型
         - 在代码中进行模型选择判断
     """
-    SONNET = "claude-sonnet-4-20250514"
-    OPUS = "claude-opus-4-20250514"
+    SONNET = "claude-sonnet-20241022"
+    OPUS = "claude-opus-20241022"
 
 
 class ModelRouter:

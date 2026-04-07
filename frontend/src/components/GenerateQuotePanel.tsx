@@ -18,6 +18,7 @@ import { useQueryClient } from '@tanstack/react-query';
 export interface GenerateQuotePanelProps {
   emailId: string;
   onQuoteGenerated?: (quoteId: string) => void;
+  variant?: 'full' | 'compact';
 }
 
 // ============================================================================
@@ -27,6 +28,7 @@ export interface GenerateQuotePanelProps {
 const GenerateQuotePanel: React.FC<GenerateQuotePanelProps> = ({
   emailId,
   onQuoteGenerated,
+  variant = 'full',
 }) => {
   const queryClient = useQueryClient();
   const [showExisting, setShowExisting] = useState(false);
@@ -51,6 +53,20 @@ const GenerateQuotePanel: React.FC<GenerateQuotePanelProps> = ({
   const handleViewExisting = (quoteId: string) => {
     onQuoteGenerated?.(quoteId);
   };
+
+  // Compact variant for header bar
+  if (variant === 'compact') {
+    return (
+      <button
+        onClick={handleGenerate}
+        disabled={generateMutation.isPending}
+        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-gradient-to-r from-[#14b8a6] to-[#06b6d4] text-white hover:from-[#0d9488] hover:to-[#0891b1] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+      >
+        <span>{generateMutation.isPending ? '⏳' : '✨'}</span>
+        {generateMutation.isPending ? '生成中...' : '生成报价'}
+      </button>
+    );
+  }
 
   return (
     <div className="bg-gradient-to-br from-[#1e293b] to-[#0f172a] rounded-xl border border-[#334155] p-4">

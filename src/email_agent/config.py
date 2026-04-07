@@ -91,6 +91,15 @@ class Settings(BaseSettings):
     # 根据 JD 要求，80% 的请求应该路由到成本更低的 Sonnet 模型
     target_sonnet_rate: float = Field(default=0.80)
 
+    # LLM Provider 配置
+    # 支持的 provider: "anthropic", "bailian", "mock"
+    llm_provider: str = Field(default="anthropic")
+
+    # 阿里百炼配置
+    bailian_api_key: str = Field(default="")
+    bailian_base_url: str = Field(default="https://dashscope.aliyuncs.com/compatible-mode/v1")
+    bailian_model: str = Field(default="qwen-max")
+
 
 # 全局 Settings 实例
 # 在模块导入时创建，供整个应用共享使用

@@ -69,6 +69,7 @@ export interface PromptVersion {
 // API 响应类型
 export interface EmailsResponse {
   emails: Email[];
+  total: number;
 }
 
 export interface AnalysisResponse {

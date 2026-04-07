@@ -18,9 +18,10 @@ const fetchEmails = async (limit?: number): Promise<Email[]> => {
   }));
 };
 
-const fetchEmailsPaginated = async ({ pageParam = 1 }): Promise<{ emails: Email[]; nextPage: number | null }> => {
+const fetchEmailsPaginated = async ({ pageParam = 1 }): Promise<{ emails: Email[]; nextPage: number | null; total: number }> => {
   const limit = 20; // 每页 20 条
-  const response = await fetch(`${API_BASE_URL}/emails?limit=${limit}&offset=${(pageParam - 1) * limit}`);
+  const offset = (pageParam - 1) * limit;
+  const response = await fetch(`${API_BASE_URL}/emails?limit=${limit}&offset=${offset}`);
   if (!response.ok) {
     throw new Error('获取邮件列表失败');
   }
@@ -32,9 +33,13 @@ const fetchEmailsPaginated = async ({ pageParam = 1 }): Promise<{ emails: Email[
     status: email.status === 'pending' ? 'new' : email.status === 'processing' ? 'processing' : 'done',
   }));
 
+  const total = data.total || emails.length;
+  const hasMore = offset + emails.length < total;
+
   return {
     emails,
-    nextPage: emails.length === limit ? pageParam + 1 : null,
+    nextPage: hasMore ? pageParam + 1 : null,
+    total,
   };
 };
 

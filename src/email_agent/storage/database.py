@@ -26,7 +26,7 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
     AsyncEngine
 )
-from sqlalchemy import select
+from sqlalchemy import select, func
 
 from email_agent.config import Settings
 from email_agent.logging_config import get_logger
@@ -635,7 +635,7 @@ class Database:
                 "region": destination
             }
 
-    async def get_all_emails(self, limit: int = 50, offset: int = 0) -> list:
+    async def get_all_emails(self, limit: int = 50, offset: int = 0) -> tuple[list, int]:
         """
         获取所有邮件列表（支持分页）
 
@@ -647,28 +647,37 @@ class Database:
             offset: int 类型，偏移量，默认 0
 
         返回值:
-            list: 邮件列表
+            tuple: (邮件列表，总记录数)
         """
         from email_agent.storage.models import Email
 
         async with self.session() as session:
+            # 获取总记录数
+            count_stmt = select(func.count()).select_from(Email)
+            count_result = await session.execute(count_stmt)
+            total = count_result.scalar() or 0
+
+            # 获取分页数据
             stmt = select(Email).order_by(Email.received_at.desc()).offset(offset).limit(limit)
             result = await session.execute(stmt)
             emails = result.scalars().all()
 
-            return [
-                {
-                    "id": email.id,
-                    "from_address": email.from_address,
-                    "subject": email.subject,
-                    "preview": email.body[:100] + "..." if email.body else "",
-                    "priority": email.priority,
-                    "status": email.status,
-                    "received_at": email.received_at.isoformat() if email.received_at else None,
-                    "region": email.region,
-                }
-                for email in emails
-            ]
+            return (
+                [
+                    {
+                        "id": email.id,
+                        "from_address": email.from_address,
+                        "subject": email.subject,
+                        "preview": email.body[:100] + "..." if email.body else "",
+                        "priority": email.priority,
+                        "status": email.status,
+                        "received_at": email.received_at.isoformat() if email.received_at else None,
+                        "region": email.region,
+                    }
+                    for email in emails
+                ],
+                total
+            )
 
     async def get_email_by_id(self, email_id: str) -> dict:
         """
@@ -696,6 +705,7 @@ class Database:
                     "from_address": email.from_address,
                     "subject": email.subject,
                     "body": email.body,
+                    "raw_content": email.body or "",
                     "priority": email.priority,
                     "status": email.status,
                     "received_at": email.received_at.isoformat() if email.received_at else None,
@@ -814,7 +824,7 @@ class Database:
                 layer1_classification={"type": "inquiry", "priority": 0.8},
                 processing_time_ms=1500.0,
                 cost=0.003,
-                model_used="claude-sonnet-4-20250514"
+                model_used="claude-sonnet-20241022"
             )
         """
         from email_agent.storage.models import EmailAnalysis

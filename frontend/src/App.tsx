@@ -77,7 +77,6 @@ const App: React.FC = () => {
   const [selectedApprovalId, setSelectedApprovalId] = useState<number | null>(null);
   const [selectedQuoteId, setSelectedQuoteId] = useState<string | null>(null);
   const [showGenerateDrawer, setShowGenerateDrawer] = useState(false);
-  const [showRetrieval, setShowRetrieval] = useState(false);
 
   // 获取 refetch 函数
   const { refetch } = useEmails();
@@ -196,8 +195,6 @@ const App: React.FC = () => {
               setSelectedQuoteId(quoteId);
               setActiveTab('quotes');
             }}
-            showRetrieval={showRetrieval}
-            onToggleRetrieval={() => setShowRetrieval(!showRetrieval)}
           />
         )}
         {activeTab === 'agents' && <AgentsTab />}
@@ -264,20 +261,22 @@ interface InboxTabProps {
   selectedEmail: string | null;
   onSelectEmail: (id: string | null) => void;
   onQuoteGenerated?: (quoteId: string) => void;
-  showRetrieval: boolean;
-  onToggleRetrieval: () => void;
 }
 
 const InboxTab: React.FC<InboxTabProps> = ({
   selectedEmail,
   onSelectEmail,
   onQuoteGenerated,
-  showRetrieval,
-  onToggleRetrieval,
 }) => {
   // 使用无限滚动 hook 获取邮件列表
-  const { data, fetchNextPage, hasNextPage, isLoading, error } = useEmailsInfinite();
+  const { data, fetchNextPage, hasNextPage, isLoading, error, isFetchingNextPage } = useEmailsInfinite();
   const { data: analysisSections } = useEmailAnalysis(selectedEmail);
+  const { workflow } = useWorkflow(selectedEmail || '');
+  const [showRetrieval, setShowRetrieval] = useState(false);
+
+  // 用于追踪是否已经触发过加载的 ref
+  const loadMoreTriggered = React.useRef(false);
+  const emailListRef = React.useRef<HTMLDivElement>(null);
 
   // 扁平化所有页面的数据
   const emails = data?.pages.flatMap(page => page.emails) || [];
@@ -287,11 +286,36 @@ const InboxTab: React.FC<InboxTabProps> = ({
   };
 
   // 加载更多
-  const handleLoadMore = () => {
-    if (hasNextPage) {
+  const handleLoadMore = React.useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) {
       fetchNextPage();
     }
-  };
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  // 监听邮件列表滚动，实现无限滚动
+  React.useEffect(() => {
+    const element = emailListRef.current;
+    if (!element) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = element;
+      // 当滚动到距离底部 100px 时触发加载
+      if (scrollHeight - scrollTop - clientHeight < 100) {
+        if (hasNextPage && !isFetchingNextPage && !loadMoreTriggered.current) {
+          loadMoreTriggered.current = true;
+          handleLoadMore();
+        }
+      }
+    };
+
+    element.addEventListener('scroll', handleScroll);
+    return () => element.removeEventListener('scroll', handleScroll);
+  }, [hasNextPage, isFetchingNextPage, handleLoadMore]);
+
+  // 重置加载触发器当数据变化时
+  React.useEffect(() => {
+    loadMoreTriggered.current = false;
+  }, [emails.length]);
 
   return (
     <div className="grid grid-cols-12 gap-4 h-full">
@@ -302,7 +326,17 @@ const InboxTab: React.FC<InboxTabProps> = ({
           <span className="text-xs text-[#64748b]">{emails.length} 封邮件</span>
         </div>
 
-        <div className="flex-1 overflow-y-auto overflow-x-hidden">
+        <div
+          ref={emailListRef}
+          className="flex-1 overflow-y-auto overflow-x-hidden"
+          onContextMenu={(e) => {
+            e.preventDefault();
+            // 右键菜单：如果还有更多邮件，自动加载
+            if (hasNextPage && !isFetchingNextPage) {
+              handleLoadMore();
+            }
+          }}
+        >
           {isLoading ? (
             <EmailListSkeleton />
           ) : error ? (
@@ -322,45 +356,110 @@ const InboxTab: React.FC<InboxTabProps> = ({
               {hasNextPage && (
                 <button
                   onClick={handleLoadMore}
-                  className="w-full py-3 text-sm text-[#64748b] hover:text-[#3b82f6] hover:bg-[#0f172a] transition-colors border-t border-[#1e293b]"
+                  disabled={isFetchingNextPage}
+                  className={`w-full py-3 text-sm transition-colors border-t border-[#1e293b] flex items-center justify-center gap-2 ${
+                    isFetchingNextPage
+                      ? 'text-[#94a3b8] cursor-not-allowed'
+                      : 'text-[#64748b] hover:text-[#3b82f6] hover:bg-[#0f172a]'
+                  }`}
                 >
-                  加载更多...
+                  {isFetchingNextPage ? (
+                    <>
+                      <span className="animate-spin">⟳</span>
+                      加载中...
+                    </>
+                  ) : (
+                    '加载更多...'
+                  )}
                 </button>
+              )}
+              {!hasNextPage && emails.length > 0 && (
+                <div className="py-3 text-center text-xs text-[#64748b] border-t border-[#1e293b]">
+                  已加载全部 {emails.length} 封邮件
+                </div>
               )}
             </>
           )}
         </div>
       </div>
 
-      {/* 右侧列 - 邮件详情 + AI 分析 + 检索结果（9.5 列，上下滚动） */}
-      <div className="col-span-9 space-y-4 overflow-y-auto">
+      {/* 右侧列 - 邮件详情（9.5 列） */}
+      <div className="col-span-9 bg-[#1e293b] rounded-xl border border-[#334155] overflow-hidden flex flex-col min-h-0">
         {selectedEmail ? (
           <>
-            {/* 邮件详情 */}
-            <div className="bg-[#1e293b] rounded-xl border border-[#334155] overflow-hidden">
-              <EmailDetailContent
-                emailId={selectedEmail}
-                showRetrieval={showRetrieval}
-                onToggleRetrieval={onToggleRetrieval}
-              />
+            {/* 固定头部 - 邮件信息 + 操作按钮 */}
+            <div className="flex-shrink-0 border-b border-[#334155] bg-gradient-to-r from-[#1e293b] to-[#334155]">
+              {/* 邮件头部 */}
+              <div className="px-4 py-3">
+                <h2 className="font-bold text-lg text-[#e2e8f0] truncate">药品询价请求</h2>
+                <div className="flex items-center gap-4 mt-2 text-xs text-[#94a3b8]">
+                  <span>From: customer@example.com</span>
+                  <span>·</span>
+                  <span>4/2/2026, 9:37:26 PM</span>
+                </div>
+              </div>
+
+              {/* 快捷操作栏 */}
+              <div className="px-4 py-2 bg-[#0f172a] border-t border-[#334155] flex items-center gap-3">
+                <button
+                  onClick={() => setShowRetrieval(!showRetrieval)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
+                    showRetrieval
+                      ? 'bg-[#3b82f6] text-white'
+                      : 'bg-[#1e293b] text-[#94a3b8] hover:text-[#e2e8f0] border border-[#334155]'
+                  }`}
+                >
+                  <span>{showRetrieval ? '🔍' : '🔗'}</span>
+                  {showRetrieval ? '隐藏检索' : '检索结果'}
+                </button>
+                <div className="flex-1" />
+                <GenerateQuotePanel
+                  emailId={selectedEmail}
+                  onQuoteGenerated={handleQuoteGenerated}
+                  variant="compact"
+                />
+              </div>
             </div>
 
-            {/* 报价生成面板 */}
-            <GenerateQuotePanel emailId={selectedEmail} onQuoteGenerated={handleQuoteGenerated} />
+            {/* 可滚动内容区 */}
+            <div className="flex-1 overflow-y-auto">
+              <div className="p-4 space-y-4">
+                {/* 检索结果面板（可展开/收起） */}
+                {showRetrieval && (
+                  <div className="animate-fade-in">
+                    <RetrievalResultPanel emailId={selectedEmail} />
+                  </div>
+                )}
 
-            {/* AI 分析部分 */}
-            {analysisSections && analysisSections.length > 0 ? (
-              analysisSections.map((section, index) => (
-                <AnalysisPanel
-                  key={index}
-                  section={section}
-                  delay={index * 100}
-                />
-              ))
-            ) : null}
+                {/* 处理流程时间线 */}
+                <WorkflowTimeline workflow={workflow} loading={!workflow} />
+
+                {/* 邮件内容 */}
+                <div className="bg-[#0f172a] border border-[#1e293b] rounded-lg p-4">
+                  <h3 className="text-sm font-semibold text-[#e2e8f0] mb-3">📧 邮件内容</h3>
+                  <pre className="text-sm text-[#94a3b8] whitespace-pre-wrap font-sans">
+                    尊敬的供应商：{'\n\n'}
+                    我们对采购医药产品感兴趣...{'\n\n'}
+                    此致，{'\n'}
+                    客户
+                  </pre>
+                </div>
+
+                {/* AI 分析部分 */}
+                {analysisSections && analysisSections.length > 0 ? (
+                  analysisSections.map((section, index) => (
+                    <AnalysisPanel
+                      key={index}
+                      section={section}
+                      delay={index * 100}
+                    />
+                  ))
+                ) : null}
+              </div>
+            </div>
           </>
         ) : (
-          <div className="h-96 flex items-center justify-center text-[#64748b] bg-[#1e293b] rounded-xl border border-[#334155]">
+          <div className="h-full flex items-center justify-center text-[#64748b]">
             <div className="text-center">
               <div className="text-6xl mb-4">👈</div>
               <div className="text-xl font-medium">选择一封邮件查看详情</div>
@@ -1083,77 +1182,6 @@ const EmailListSkeleton: React.FC = () => (
     ))}
   </div>
 );
-
-/**
- * Email Detail Content Component
- */
-interface EmailDetailContentProps {
-  emailId: string;
-  showRetrieval: boolean;
-  onToggleRetrieval: () => void;
-}
-
-const EmailDetailContent: React.FC<EmailDetailContentProps> = ({
-  emailId,
-  showRetrieval,
-  onToggleRetrieval,
-}) => {
-  const { workflow } = useWorkflow(emailId);
-
-  // Mock email data (in real app, this would come from API)
-  const emailData = {
-    subject: '药品询价请求',
-    from: 'customer@example.com',
-    receivedAt: new Date().toISOString(),
-    body: '尊敬的供应商：\n\n我们对采购医药产品感兴趣...\n\n此致，\n客户',
-  };
-
-  return (
-    <>
-      {/* Header */}
-      <div className="px-4 py-3 border-b border-[#334155] bg-gradient-to-r from-[#1e293b] to-[#334155]">
-        <h2 className="font-bold text-[#e2e8f0] truncate">{emailData.subject}</h2>
-        <div className="flex items-center gap-4 mt-2 text-xs text-[#94a3b8]">
-          <span>From: {emailData.from}</span>
-          <span>·</span>
-          <span>{new Date(emailData.receivedAt).toLocaleString()}</span>
-        </div>
-      </div>
-
-      {/* Content Scroll Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {/* Workflow Timeline */}
-        <WorkflowTimeline workflow={workflow} loading={!workflow} />
-
-        {/* Retrieval Toggle Button */}
-        <button
-          onClick={onToggleRetrieval}
-          className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
-            showRetrieval
-              ? 'bg-[#3b82f6] text-white'
-              : 'bg-[#0f172a] text-[#94a3b8] hover:text-[#e2e8f0] border border-[#334155]'
-          }`}
-        >
-          <span className="mr-2">{showRetrieval ? '🔍' : '🔗'}</span>
-          {showRetrieval ? '隐藏检索结果' : '显示检索结果 (Layer 2)'}
-        </button>
-
-        {/* Retrieval Result Panel */}
-        {showRetrieval && (
-          <div className="animate-fade-in">
-            <RetrievalResultPanel emailId={emailId} />
-          </div>
-        )}
-
-        {/* Email Body */}
-        <div className="bg-[#0f172a] border border-[#1e293b] rounded-lg p-4">
-          <h3 className="text-sm font-semibold text-[#e2e8f0] mb-3">邮件内容</h3>
-          <pre className="text-sm text-[#94a3b8] whitespace-pre-wrap font-sans">{emailData.body}</pre>
-        </div>
-      </div>
-    </>
-  );
-};
 
 // ============================================================================
 // Prometheus Metrics Section Component

@@ -20,7 +20,7 @@ Layer 3: 报价生成器模块
 import json
 import uuid
 import time
-from typing import TYPE_CHECKING, Any, Dict
+from typing import Any, Dict
 
 from email_agent.config import Settings
 from email_agent.layer3.prompts import QUOTE_GENERATION_PROMPT, QuoteResult
@@ -28,10 +28,7 @@ from email_agent.layer3.router import ModelChoice, ModelRouter
 from email_agent.logging_config import get_logger
 from email_agent.observability.budget_tracker import BudgetTracker
 from email_agent.storage.database import get_database
-
-# TYPE_CHECKING 用于类型检查时导入，避免运行时循环依赖
-if TYPE_CHECKING:
-    import anthropic
+from email_agent.llm_adapter import get_llm_adapter, LLMAdapter, LLMResponse
 
 # 获取当前模块的日志记录器
 logger = get_logger(__name__)
@@ -78,32 +75,10 @@ class QuoteGenerator:
             无
         """
         self.settings = settings
-        self._client = None  # 懒加载客户端
+        self.llm = get_llm_adapter()  # LLM 适配器
         self.router = ModelRouter()  # 模型路由器，根据复杂度选择模型
         self.budget_tracker = BudgetTracker(settings)  # 预算追踪器
         self.db = get_database(settings)  # 数据库实例，用于写入报价结果
-
-    @property
-    def client(self) -> "anthropic.AsyncClient":
-        """
-        Anthropic 客户端属性 (懒加载)
-
-        功能描述:
-            按需创建 Anthropic 客户端，避免在构造函数中初始化可能导致的代理问题。
-
-        参数:
-            无
-
-        返回值:
-            anthropic.AsyncClient: Anthropic 异步客户端实例
-
-        异常:
-            无
-        """
-        if self._client is None:
-            import anthropic
-            self._client = anthropic.AsyncClient(api_key=self.settings.anthropic_api_key)
-        return self._client
 
     async def generate_quote(
         self,
@@ -218,10 +193,10 @@ class QuoteGenerator:
 
     async def _call_llm(self, model: ModelChoice, prompt: str) -> str:
         """
-        调用 Anthropic LLM API
+        调用 LLM API
 
         功能描述:
-            使用选定的模型调用 Anthropic API 生成报价。
+            使用 LLM Adapter 调用 API 生成报价。
             计算并记录实际 API 成本。
 
         参数:
@@ -239,18 +214,18 @@ class QuoteGenerator:
             - 记录实际 token 消耗和成本
             - 更新预算追踪器
         """
-        # 调用 Anthropic Messages API
-        response = await self.client.messages.create(
-            model=model.value,  # 模型名称
-            max_tokens=1024,  # 最大输出 tokens
-            messages=[{"role": "user", "content": prompt}]
+        # 调用 LLM API
+        response = await self.llm.chat(
+            user_prompt=prompt,
+            system_prompt="You are a quote generation assistant. Generate structured quotes in JSON format.",
+            max_tokens=1024
         )
 
-        # 计算实际 API 成本
+        # 计算实际 API 成本（模拟）
         cost = self._calculate_cost(
             model=model,
-            input_tokens=response.usage.input_tokens,
-            output_tokens=response.usage.output_tokens
+            input_tokens=response.usage.get("input_tokens", 100),
+            output_tokens=response.usage.get("output_tokens", 100)
         )
         # 记录实际支出到预算追踪器
         await self.budget_tracker.record_spending(
@@ -258,7 +233,7 @@ class QuoteGenerator:
             actual_cost=cost
         )
 
-        return response.content[0].text.strip()
+        return response.content.strip()
 
     def _calculate_cost(
         self,

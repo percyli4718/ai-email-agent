@@ -21,44 +21,16 @@ Layer 1: 电子邮件分类器模块
 import json
 import time
 import asyncio
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from email_agent.config import Settings
 from email_agent.layer1.prompts import CLASSIFIER_PROMPT, EmailClassification
 from email_agent.logging_config import get_logger
 from email_agent.storage.database import get_database
-
-# TYPE_CHECKING 用于类型检查时导入，避免运行时循环依赖
-if TYPE_CHECKING:
-    import anthropic
+from email_agent.llm_adapter import get_llm_adapter, LLMAdapter, LLMResponse
 
 # 获取当前模块的日志记录器
 logger = get_logger(__name__)
-
-
-def create_client(api_key: str) -> "anthropic.AsyncClient":
-    """
-    创建 Anthropic API 客户端实例
-
-    功能描述:
-        工厂函数，使用提供的 API 密钥创建 Anthropic 异步客户端。
-        将导入语句放在函数内部，避免模块加载时的依赖问题。
-
-    参数:
-        api_key: str 类型，Anthropic API 密钥
-
-    返回值:
-        anthropic.AsyncClient: Anthropic 异步客户端实例
-
-    异常:
-        无
-
-    使用场景:
-        - 分类器初始化时创建客户端
-        - 需要多个客户端实例时使用
-    """
-    import anthropic
-    return anthropic.AsyncClient(api_key=api_key)
 
 
 class EmailClassifier:
@@ -97,31 +69,8 @@ class EmailClassifier:
             无
         """
         self.settings = settings
-        self._client = None  # 懒加载客户端，避免初始化时的代理问题
+        self.llm = get_llm_adapter()  # LLM 适配器
         self.db = get_database(settings)  # 数据库实例，用于写入分类结果
-
-    @property
-    def client(self) -> "anthropic.AsyncClient":
-        """
-        Anthropic 客户端属性 (懒加载)
-
-        功能描述:
-            按需创建 Anthropic 客户端，避免在构造函数中初始化可能导致的代理问题。
-            首次访问时创建客户端实例，后续访问复用同一实例。
-
-        参数:
-            无
-
-        返回值:
-            anthropic.AsyncClient: Anthropic 异步客户端实例
-
-        异常:
-            无
-        """
-        if self._client is None:
-            # 首次访问时创建客户端
-            self._client = create_client(self.settings.anthropic_api_key)
-        return self._client
 
     async def classify(
         self,
@@ -185,17 +134,15 @@ class EmailClassifier:
                     subject=subject
                 )
 
-                # 调用 Anthropic API，使用 Claude Sonnet 模型进行分类
-                response = await self.client.messages.create(
-                    model="claude-sonnet-4-20250514",
-                    max_tokens=256,  # 分类结果较短，256 tokens 足够
-                    messages=[
-                        {"role": "user", "content": prompt}
-                    ]
+                # 调用 LLM API 进行分类
+                response = await self.llm.chat_with_json(
+                    user_prompt=prompt,
+                    system_prompt="You are an email classification assistant. Classify emails and return JSON format responses.",
+                    max_tokens=256
                 )
 
                 # 解析模型返回的 JSON 响应
-                result_text = response.content[0].text.strip()
+                result_text = response.content.strip()
                 result: EmailClassification = json.loads(result_text)
 
                 # 验证分类结果包含所有必需字段
@@ -209,8 +156,8 @@ class EmailClassifier:
                     email_id=email_id,
                     layer1_classification=result,
                     processing_time_ms=processing_time_ms,
-                    cost=0.003,  # Sonnet 预估成本
-                    model_used="claude-sonnet-4-20250514"
+                    cost=0.003,  # 预估成本
+                    model_used=response.model
                 )
 
                 # 更新邮件状态

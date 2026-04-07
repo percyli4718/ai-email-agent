@@ -3,6 +3,10 @@ import { API_BASE_URL, AnalysisSection } from '../types/api';
 
 const fetchEmailAnalysis = async (emailId: string): Promise<AnalysisSection[]> => {
   const response = await fetch(`${API_BASE_URL}/emails/${emailId}/analysis`);
+  // 404 表示邮件还没有被 AI 处理，返回空数组
+  if (response.status === 404) {
+    return [];
+  }
   if (!response.ok) {
     throw new Error('获取邮件分析失败');
   }

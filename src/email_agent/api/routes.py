@@ -588,13 +588,13 @@ async def list_emails(status: str = "all", limit: int = 20, offset: int = 0):
         EmailListResponse: 包含 emails 列表和 total 总数
     """
     # 从数据库获取邮件列表
-    emails = await db.get_all_emails(limit=limit, offset=offset)
+    emails, total = await db.get_all_emails(limit=limit, offset=offset)
 
     # 状态过滤
     if status != "all":
         emails = [e for e in emails if e["status"] == status]
 
-    return {"emails": emails, "total": len(emails)}
+    return {"emails": emails, "total": total}
 
 
 @router.get("/emails/classifications")
@@ -606,7 +606,7 @@ async def get_email_classifications():
         包含所有邮件分类结果的列表
     """
     # 从数据库获取所有邮件
-    emails = await db.get_all_emails()
+    emails, _ = await db.get_all_emails()
 
     # 构建分类结果列表
     classifications = []
