@@ -684,7 +684,7 @@ class Database:
         根据 ID 获取邮件详情
 
         功能描述:
-            查询单封邮件的完整信息。
+            查询单封邮件的完整信息，包括分类结果。
 
         参数:
             email_id: str 类型，邮件 ID
@@ -692,26 +692,43 @@ class Database:
         返回值:
             dict: 邮件信息字典，不存在则返回 None
         """
-        from email_agent.storage.models import Email
+        from email_agent.storage.models import Email, EmailAnalysis
+        import json
 
         async with self.session() as session:
+            # 查询邮件基本信息
             stmt = select(Email).where(Email.id == email_id)
             result = await session.execute(stmt)
             email = result.scalars().first()
 
-            if email:
-                return {
-                    "id": email.id,
-                    "from_address": email.from_address,
-                    "subject": email.subject,
-                    "body": email.body,
-                    "raw_content": email.body or "",
-                    "priority": email.priority,
-                    "status": email.status,
-                    "received_at": email.received_at.isoformat() if email.received_at else None,
-                    "region": email.region,
-                }
-            return None
+            if not email:
+                return None
+
+            # 查询分类结果
+            classification = {}
+            stmt = select(EmailAnalysis).where(EmailAnalysis.email_id == email_id)
+            result = await session.execute(stmt)
+            analysis = result.scalars().first()
+
+            if analysis and analysis.layer1_classification:
+                # 解析 JSON 字符串
+                if isinstance(analysis.layer1_classification, str):
+                    classification = json.loads(analysis.layer1_classification)
+                else:
+                    classification = analysis.layer1_classification
+
+            return {
+                "id": email.id,
+                "from_address": email.from_address,
+                "subject": email.subject,
+                "body": email.body,
+                "raw_content": email.body or "",
+                "priority": email.priority,
+                "status": email.status,
+                "received_at": email.received_at.isoformat() if email.received_at else None,
+                "region": email.region,
+                "classification": classification,
+            }
 
     async def get_email_analysis(self, email_id: str) -> dict:
         """
