@@ -18,6 +18,7 @@ frontend/dist/
 # Data
 data/*.db
 data/chroma/
+data/chroma_db/
 *.heapsnapshot
 
 # IDE
