@@ -1360,9 +1360,10 @@ class Database:
         """
         from email_agent.storage.models import Quote
         from sqlalchemy import select
+        from sqlalchemy.orm import selectinload
 
         async with self.session() as session:
-            stmt = select(Quote).where(Quote.quote_id == quote_id)
+            stmt = select(Quote).where(Quote.quote_id == quote_id).options(selectinload(Quote.items))
             result = await session.execute(stmt)
             quote = result.scalars().first()
 

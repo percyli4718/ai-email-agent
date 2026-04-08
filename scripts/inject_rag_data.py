@@ -90,11 +90,12 @@ async def inject_rag_data():
             print(f"    ✗ Embedding 生成失败")
             continue
 
-        # 添加到向量库
+        # 添加到向量库（包含 documents 参数）
         collection.add(
+            ids=[email.id],
             embeddings=[embedding],
-            metadatas=[metadata],
-            ids=[email.id]
+            documents=[content],  # 添加文档内容
+            metadatas=[metadata]
         )
         print(f"    ✓ 注入成功 (embedding dim: {len(embedding)})")
         injected_count += 1
