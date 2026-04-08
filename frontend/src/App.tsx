@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useEmails, useEmailsInfinite } from './hooks/useEmails';
 import { useEmailAnalysis } from './hooks/useEmailAnalysis';
+import { useEmailDetail } from './hooks/useEmailDetail';
 import { useMetrics, useTraces, usePromptVersions, usePrometheusMetrics } from './hooks';
 import { useAgentsStatus } from './hooks/useAgentsStatus';
 import { Email as ApiEmail, AnalysisSection, Metric, TraceSpan, PromptVersion, Agent } from './types/api';
@@ -271,6 +272,7 @@ const InboxTab: React.FC<InboxTabProps> = ({
   // 使用无限滚动 hook 获取邮件列表
   const { data, fetchNextPage, hasNextPage, isLoading, error, isFetchingNextPage } = useEmailsInfinite();
   const { data: analysisSections } = useEmailAnalysis(selectedEmail);
+  const { data: emailDetail } = useEmailDetail(selectedEmail);
   const { workflow } = useWorkflow(selectedEmail || '');
   const [showRetrieval, setShowRetrieval] = useState(false);
 
@@ -437,12 +439,30 @@ const InboxTab: React.FC<InboxTabProps> = ({
                 {/* 邮件内容 */}
                 <div className="bg-[#0f172a] border border-[#1e293b] rounded-lg p-4">
                   <h3 className="text-sm font-semibold text-[#e2e8f0] mb-3">📧 邮件内容</h3>
-                  <pre className="text-sm text-[#94a3b8] whitespace-pre-wrap font-sans">
-                    尊敬的供应商：{'\n\n'}
-                    我们对采购医药产品感兴趣...{'\n\n'}
-                    此致，{'\n'}
-                    客户
-                  </pre>
+                  {emailDetail ? (
+                    <div className="space-y-2">
+                      <div className="text-xs text-[#64748b]">
+                        <span className="font-medium">From:</span> {emailDetail.from_address}
+                      </div>
+                      <div className="text-xs text-[#64748b]">
+                        <span className="font-medium">Subject:</span> {emailDetail.subject}
+                      </div>
+                      <div className="text-xs text-[#64748b]">
+                        <span className="font-medium">Received:</span> {new Date(emailDetail.received_at).toLocaleString()}
+                      </div>
+                      <div className="border-t border-[#1e293b] my-2" />
+                      <pre className="text-sm text-[#94a3b8] whitespace-pre-wrap font-sans">
+                        {emailDetail.raw_content || emailDetail.body || emailDetail.preview}
+                      </pre>
+                    </div>
+                  ) : (
+                    <pre className="text-sm text-[#94a3b8] whitespace-pre-wrap font-sans">
+                      尊敬的供应商：{'\n\n'}
+                      我们对采购医药产品感兴趣...{'\n\n'}
+                      此致，{'\n'}
+                      客户
+                    </pre>
+                  )}
                 </div>
 
                 {/* AI 分析部分 */}
