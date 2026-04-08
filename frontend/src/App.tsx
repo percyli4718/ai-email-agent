@@ -322,7 +322,7 @@ const InboxTab: React.FC<InboxTabProps> = ({
   return (
     <div className="grid grid-cols-12 gap-4 h-full min-h-0">
       {/* 左侧列 - 邮件列表（2.5 列） */}
-      <div className="col-span-3 bg-[#1e293b] rounded-xl border border-[#334155] overflow-hidden flex flex-col min-h-0">
+      <div className="col-span-3 bg-[#1e293b] rounded-xl border border-[#334155] overflow-hidden flex flex-col min-h-0 h-full">
         <div className="px-4 py-3 border-b border-[#334155] flex items-center justify-between flex-shrink-0">
           <h2 className="font-semibold text-[#e2e8f0]">📨 收件箱</h2>
           <span className="text-xs text-[#64748b]">{emails.length} 封邮件</span>
@@ -330,7 +330,7 @@ const InboxTab: React.FC<InboxTabProps> = ({
 
         <div
           ref={emailListRef}
-          className="flex-1 overflow-y-auto overflow-x-hidden"
+          className="flex-1 overflow-y-auto overflow-x-hidden min-h-0"
           onContextMenu={(e) => {
             e.preventDefault();
             // 右键菜单：如果还有更多邮件，自动加载
