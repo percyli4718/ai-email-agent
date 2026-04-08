@@ -322,7 +322,7 @@ const InboxTab: React.FC<InboxTabProps> = ({
   return (
     <div className="grid grid-cols-12 gap-4 h-full min-h-0">
       {/* 左侧列 - 邮件列表（2.5 列） */}
-      <div className="col-span-3 bg-[#1e293b] rounded-xl border border-[#334155] overflow-hidden flex flex-col min-h-0 h-full">
+      <div className="col-span-3 bg-[#1e293b] rounded-xl border border-[#334155] overflow-hidden flex flex-col min-h-0 h-[calc(100vh-180px)]">
         <div className="px-4 py-3 border-b border-[#334155] flex items-center justify-between flex-shrink-0">
           <h2 className="font-semibold text-[#e2e8f0]">📨 收件箱</h2>
           <span className="text-xs text-[#64748b]">{emails.length} 封邮件</span>
@@ -330,7 +330,7 @@ const InboxTab: React.FC<InboxTabProps> = ({
 
         <div
           ref={emailListRef}
-          className="flex-1 overflow-y-auto overflow-x-hidden min-h-0"
+          className="flex-1 overflow-y-auto overflow-x-hidden"
           onContextMenu={(e) => {
             e.preventDefault();
             // 右键菜单：如果还有更多邮件，自动加载
@@ -423,58 +423,61 @@ const InboxTab: React.FC<InboxTabProps> = ({
               </div>
             </div>
 
-            {/* 可滚动内容区 */}
+            {/* 可滚动内容区 - 左右分栏布局 */}
             <div className="flex-1 overflow-y-auto">
-              <div className="p-4 space-y-4">
-                {/* 检索结果面板（可展开/收起） */}
+              <div className="p-4 grid grid-cols-2 gap-4">
+                {/* 左侧：检索结果 */}
                 {showRetrieval && (
                   <div className="animate-fade-in">
                     <RetrievalResultPanel emailId={selectedEmail} />
                   </div>
                 )}
 
-                {/* 处理流程时间线 */}
-                <WorkflowTimeline workflow={workflow} loading={!workflow} />
+                {/* 右侧：邮件内容和 AI 分析 */}
+                <div className={showRetrieval ? '' : 'col-span-2'}>
+                  {/* 处理流程时间线 */}
+                  <WorkflowTimeline workflow={workflow} loading={!workflow} />
 
-                {/* 邮件内容 */}
-                <div className="bg-[#0f172a] border border-[#1e293b] rounded-lg p-4 max-h-[400px] overflow-y-auto">
-                  <h3 className="text-sm font-semibold text-[#e2e8f0] mb-3 sticky top-0 bg-[#0f172a]">📧 邮件内容</h3>
-                  {emailDetail ? (
-                    <div className="space-y-2">
-                      <div className="text-xs text-[#64748b]">
-                        <span className="font-medium">From:</span> {emailDetail.from_address}
+                  {/* 邮件内容 */}
+                  <div className="bg-[#0f172a] border border-[#1e293b] rounded-lg p-4 max-h-[400px] overflow-y-auto">
+                    <h3 className="text-sm font-semibold text-[#e2e8f0] mb-3 sticky top-0 bg-[#0f172a]">📧 邮件内容</h3>
+                    {emailDetail ? (
+                      <div className="space-y-2">
+                        <div className="text-xs text-[#64748b]">
+                          <span className="font-medium">From:</span> {emailDetail.from_address}
+                        </div>
+                        <div className="text-xs text-[#64748b]">
+                          <span className="font-medium">Subject:</span> {emailDetail.subject}
+                        </div>
+                        <div className="text-xs text-[#64748b]">
+                          <span className="font-medium">Received:</span> {new Date(emailDetail.received_at).toLocaleString()}
+                        </div>
+                        <div className="border-t border-[#1e293b] my-2" />
+                        <pre className="text-sm text-[#94a3b8] whitespace-pre-wrap font-sans">
+                          {emailDetail.raw_content || emailDetail.body || emailDetail.preview}
+                        </pre>
                       </div>
-                      <div className="text-xs text-[#64748b]">
-                        <span className="font-medium">Subject:</span> {emailDetail.subject}
-                      </div>
-                      <div className="text-xs text-[#64748b]">
-                        <span className="font-medium">Received:</span> {new Date(emailDetail.received_at).toLocaleString()}
-                      </div>
-                      <div className="border-t border-[#1e293b] my-2" />
+                    ) : (
                       <pre className="text-sm text-[#94a3b8] whitespace-pre-wrap font-sans">
-                        {emailDetail.raw_content || emailDetail.body || emailDetail.preview}
+                        尊敬的供应商：{'\n\n'}
+                        我们对采购医药产品感兴趣...{'\n\n'}
+                        此致，{'\n'}
+                        客户
                       </pre>
-                    </div>
-                  ) : (
-                    <pre className="text-sm text-[#94a3b8] whitespace-pre-wrap font-sans">
-                      尊敬的供应商：{'\n\n'}
-                      我们对采购医药产品感兴趣...{'\n\n'}
-                      此致，{'\n'}
-                      客户
-                    </pre>
-                  )}
-                </div>
+                    )}
+                  </div>
 
-                {/* AI 分析部分 */}
-                {analysisSections && analysisSections.length > 0 ? (
-                  analysisSections.map((section, index) => (
-                    <AnalysisPanel
-                      key={index}
-                      section={section}
-                      delay={index * 100}
-                    />
-                  ))
-                ) : null}
+                  {/* AI 分析部分 */}
+                  {analysisSections && analysisSections.length > 0 ? (
+                    analysisSections.map((section, index) => (
+                      <AnalysisPanel
+                        key={index}
+                        section={section}
+                        delay={index * 100}
+                      />
+                    ))
+                  ) : null}
+                </div>
               </div>
             </div>
           </>
@@ -1140,9 +1143,34 @@ interface EmailListItemProps {
 const EmailListItem: React.FC<EmailListItemProps> = ({ email, isSelected, onSelect }) => {
   const getStatusClass = (status: ApiEmail['status']) => {
     switch (status) {
-      case 'new': return 'bg-[#10b981] shadow-[0_0_8px_#10b981]';
-      case 'processing': return 'bg-[#f59e0b] shadow-[0_0_8px_#f59e0b]';
-      case 'done': return 'bg-[#64748b]';
+      case 'new':
+      case 'pending': return 'bg-[#10b981] shadow-[0_0_8px_#10b981]'; // 待处理 - 绿色
+      case 'processing': return 'bg-[#f59e0b] shadow-[0_0_8px_#f59e0b]'; // 处理中 - 黄色
+      case 'completed':
+      case 'done': return 'bg-[#64748b]'; // 已完成 - 灰色
+      default: return 'bg-[#64748b]';
+    }
+  };
+
+  const getStatusText = (status: ApiEmail['status']) => {
+    switch (status) {
+      case 'new':
+      case 'pending': return '待处理';
+      case 'processing': return '处理中';
+      case 'completed':
+      case 'done': return '已完成';
+      default: return status;
+    }
+  };
+
+  const getStatusTextClass = (status: ApiEmail['status']) => {
+    switch (status) {
+      case 'new':
+      case 'pending': return 'text-[#10b981] bg-[rgba(16,185,129,0.1)]';
+      case 'processing': return 'text-[#f59e0b] bg-[rgba(245,158,11,0.1)]';
+      case 'completed':
+      case 'done': return 'text-[#64748b] bg-[rgba(100,116,139,0.1)]';
+      default: return 'text-[#64748b] bg-[rgba(100,116,139,0.1)]';
     }
   };
 
@@ -1166,9 +1194,14 @@ const EmailListItem: React.FC<EmailListItemProps> = ({ email, isSelected, onSele
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2 mb-1">
             <h3 className="font-medium text-[#e2e8f0] text-sm truncate flex-1">{email.subject}</h3>
-            <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium flex-shrink-0 ${getPriorityClass(email.priority)}`}>
-              {email.priority === 'high' ? '高' : email.priority === 'medium' ? '中' : '低'}
-            </span>
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${getStatusTextClass(email.status)}`}>
+                {getStatusText(email.status)}
+              </span>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${getPriorityClass(email.priority)}`}>
+                {email.priority === 'high' ? '高' : email.priority === 'medium' ? '中' : '低'}
+              </span>
+            </div>
           </div>
           <p className="text-xs text-[#94a3b8] truncate">{email.preview}</p>
           <div className="flex items-center gap-2 mt-1.5">
