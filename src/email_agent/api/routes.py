@@ -652,12 +652,18 @@ async def get_email_analysis(email_id: str):
         email_id: str 类型，邮件唯一标识符
 
     返回:
-        EmailAnalysisResponse: 包含 Layer 1/2/3 分析结果
+        EmailAnalysisResponse: 包含 Layer 1/2/3 分析结果（如果没有分析记录则返回空结果）
     """
     # 从数据库获取分析结果
     analysis = await db.get_email_analysis(email_id)
     if not analysis:
-        raise HTTPException(status_code=404, detail=f"Analysis not found for email {email_id}")
+        # 没有分析记录时返回空结果，而不是 404
+        return EmailAnalysisResponse(
+            email_id=email_id,
+            layer1_classification=None,
+            layer2_retrieval=None,
+            layer3_output=None
+        )
 
     return EmailAnalysisResponse(
         email_id=email_id,

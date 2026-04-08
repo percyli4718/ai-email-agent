@@ -453,7 +453,7 @@ class EmailAnalysisResponse(BaseModel):
         email_id: str 类型，邮件 ID
             被分析的邮件 ID
 
-        layer1_classification: Layer1Analysis 类型，Layer 1 分类结果
+        layer1_classification: Optional[Layer1Analysis] 类型，Layer 1 分类结果 (可选)
             邮件分类和路由建议
 
         layer2_retrieval: Optional[Layer2Retrieval] 类型，Layer 2 检索结果 (可选)
@@ -467,7 +467,7 @@ class EmailAnalysisResponse(BaseModel):
         - 前端展示完整的 AI 分析结果
     """
     email_id: str
-    layer1_classification: Layer1Analysis
+    layer1_classification: Optional[Layer1Analysis] = None
     layer2_retrieval: Optional[Layer2Retrieval] = None
     layer3_output: Optional[Layer3StructuredOutput] = None
 
