@@ -619,6 +619,10 @@ async def get_email_classifications():
         analysis = await db.get_email_analysis(email.get("id"))
         if analysis and analysis.get("layer1_classification"):
             classification = analysis["layer1_classification"]
+            # 如果是字符串，需要解析 JSON
+            if isinstance(classification, str):
+                import json
+                classification = json.loads(classification)
             classifications.append({
                 "id": analysis.get("id") or email.get("id"),
                 "email_id": email.get("id"),
