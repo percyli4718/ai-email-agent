@@ -16,6 +16,7 @@ import GenerateQuotePanel from './components/GenerateQuotePanel';
 import { RetrievalResultPanel } from './components/RetrievalResultPanel';
 import { WorkflowTimeline } from './components/WorkflowTimeline';
 import { useWorkflow } from './hooks/useWorkflow';
+import { useQueryClient } from '@tanstack/react-query';
 import type { GeneratedEmail } from './types/generator';
 
 // ============================================================================
@@ -73,22 +74,21 @@ const CURRENT_TRACE_ID = '2847';
 // ============================================================================
 
 const App: React.FC = () => {
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'inbox' | 'agents' | 'metrics' | 'monitoring' | 'templates' | 'approvals' | 'quotes' | 'classifications'>('inbox');
   const [selectedEmail, setSelectedEmail] = useState<string | null>(null);
   const [selectedApprovalId, setSelectedApprovalId] = useState<number | null>(null);
   const [selectedQuoteId, setSelectedQuoteId] = useState<string | null>(null);
   const [showGenerateDrawer, setShowGenerateDrawer] = useState(false);
 
-  // 获取 refetch 函数
-  const { refetch } = useEmails();
-
   // 处理新邮件生成
   const handleNewEmailsGenerated = useCallback((emails: GeneratedEmail[]) => {
     console.log('新邮件已生成:', emails);
-    // 刷新邮件列表
-    refetch();
+    // 使用 invalidateQueries 强制刷新邮件列表
+    queryClient.invalidateQueries({ queryKey: ['emails'] });
+    queryClient.invalidateQueries({ queryKey: ['emails-infinite'] });
     setShowGenerateDrawer(false);
-  }, [refetch]);
+  }, [queryClient]);
 
   // 处理通知点击
   const handleNotificationClick = useCallback((notification: Notification) => {
