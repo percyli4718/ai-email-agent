@@ -182,7 +182,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onNotificationC
   // WebSocket connection for real-time notifications
   useEffect(() => {
     const clientId = `client_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const wsUrl = `ws://localhost:8080/ws/notifications?client_id=${clientId}`;
+    const wsUrl = `ws://localhost:8000/ws/notifications?client_id=${clientId}`;
 
     try {
       wsRef.current = new WebSocket(wsUrl);

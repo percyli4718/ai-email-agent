@@ -36,8 +36,8 @@ interface ClassificationsResponse {
   total: number;
 }
 
-type FilterType = 'all' | 'inquiry' | 'complaint' | 'question' | 'contract' | 'other';
-type FilterRoute = 'all' | 'quote_flow' | 'complaint_flow' | 'auto_reply' | 'manual';
+type FilterType = 'all' | 'inquiry' | 'complaint' | 'question' | 'contract' | 'other' | 'status_check';
+type FilterRoute = 'all' | 'quote_flow' | 'complaint_flow' | 'auto_reply' | 'manual' | 'status_flow';
 
 // ============================================================================
 // Helper Functions
@@ -50,6 +50,7 @@ const getTypeIcon = (type: string): string => {
     question: '❓',
     contract: '📄',
     other: '📝',
+    status_check: '📋',
   };
   return icons[type] || '📝';
 };
@@ -61,6 +62,7 @@ const getTypeLabel = (type: string): string => {
     question: '咨询',
     contract: '合同',
     other: '其他',
+    status_check: '状态查询',
   };
   return labels[type] || type;
 };
@@ -74,12 +76,22 @@ const getUrgencyClass = (urgency: string): string => {
   return classes[urgency] || classes.low;
 };
 
+const getUrgencyLabel = (urgency: string): string => {
+  const labels: Record<string, string> = {
+    high: '高',
+    medium: '中',
+    low: '低',
+  };
+  return labels[urgency] || urgency;
+};
+
 const getRouteIcon = (route: string): string => {
   const icons: Record<string, string> = {
     quote_flow: '💰',
     complaint_flow: '⚠️',
     auto_reply: '🤖',
     manual: '👤',
+    status_flow: '📋',
   };
   return icons[route] || '📝';
 };
@@ -90,6 +102,7 @@ const getRouteLabel = (route: string): string => {
     complaint_flow: '投诉流程',
     auto_reply: '自动回复',
     manual: '人工处理',
+    status_flow: '状态查询',
   };
   return labels[route] || route;
 };
@@ -277,7 +290,7 @@ const ClassificationCard: React.FC<{
           </div>
         </div>
         <span className={`px-2 py-1 rounded text-xs font-bold border ${getUrgencyClass(classification.urgency)}`}>
-          {classification.urgency}
+          {getUrgencyLabel(classification.urgency)}
         </span>
       </div>
 
@@ -291,7 +304,7 @@ const ClassificationCard: React.FC<{
         </span>
         <span className="px-2 py-1 bg-indigo-100 text-indigo-700 rounded text-xs font-medium flex items-center gap-1">
           <span>{getRouteIcon(classification.suggested_route)}</span>
-          {classification.suggested_route.replace('_flow', '').replace('_', ' ')}
+          {getRouteLabel(classification.suggested_route)}
         </span>
       </div>
 
@@ -389,6 +402,7 @@ export const Classifications: React.FC = () => {
               <option value="complaint">⚠️ 投诉</option>
               <option value="question">❓ 咨询</option>
               <option value="contract">📄 合同</option>
+              <option value="status_check">📋 状态查询</option>
               <option value="other">📝 其他</option>
             </select>
           </div>
@@ -425,6 +439,7 @@ export const Classifications: React.FC = () => {
               <option value="complaint_flow">⚠️ 投诉流程</option>
               <option value="auto_reply">🤖 自动回复</option>
               <option value="manual">👤 人工处理</option>
+              <option value="status_flow">📋 状态查询</option>
             </select>
           </div>
         </div>

@@ -610,15 +610,17 @@ async def get_email_classifications():
         包含所有邮件分类结果的列表
     """
     # 从数据库获取所有邮件
-    emails, _ = await db.get_all_emails()
+    emails, _ = await db.get_all_emails(limit=1000)
 
     # 构建分类结果列表
     classifications = []
     for email in emails:
-        classification = email.get("classification", {})
-        if classification:
+        # 获取邮件的分类分析
+        analysis = await db.get_email_analysis(email.get("id"))
+        if analysis and analysis.get("layer1_classification"):
+            classification = analysis["layer1_classification"]
             classifications.append({
-                "id": email.get("id"),
+                "id": analysis.get("id") or email.get("id"),
                 "email_id": email.get("id"),
                 "subject": email.get("subject", ""),
                 "from_address": email.get("from_address", ""),

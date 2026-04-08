@@ -1399,7 +1399,7 @@ class Database:
             list: 报价单列表
         """
         from email_agent.storage.models import Quote
-        from sqlalchemy import select
+        from sqlalchemy import select, func
 
         async with self.session() as session:
             stmt = select(Quote).order_by(Quote.created_at.desc()).limit(limit)
@@ -1409,7 +1409,21 @@ class Database:
             result = await session.execute(stmt)
             quotes = result.scalars().all()
 
-            return [quote.to_dict() for quote in quotes]
+            # 手动构建字典，避免异步加载 items 关系
+            return [{
+                "id": quote.id,
+                "quote_id": quote.quote_id,
+                "email_id": quote.email_id,
+                "customer_email": quote.customer_email,
+                "total_amount": quote.total_amount,
+                "valid_until": quote.valid_until,
+                "shipping_port": quote.shipping_port,
+                "payment_terms": quote.payment_terms,
+                "notes": quote.notes,
+                "status": quote.status,
+                "created_at": quote.created_at.isoformat() if quote.created_at else None,
+                "items": []  # 空列表，避免异步加载
+            } for quote in quotes]
 
     async def update_quote_status(self, quote_id: str, status: str) -> bool:
         """
