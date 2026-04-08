@@ -1263,7 +1263,21 @@ class Database:
 
             if existing:
                 logger.warning("quote_id_exists", quote_id=quote_id)
-                return existing.to_dict()
+                # 返回基本字典，避免异步加载关系
+                return {
+                    "id": existing.id,
+                    "quote_id": existing.quote_id,
+                    "email_id": existing.email_id,
+                    "customer_email": existing.customer_email,
+                    "total_amount": existing.total_amount,
+                    "valid_until": existing.valid_until,
+                    "shipping_port": existing.shipping_port,
+                    "payment_terms": existing.payment_terms,
+                    "notes": existing.notes,
+                    "status": existing.status,
+                    "created_at": existing.created_at.isoformat() if existing.created_at else None,
+                    "items": []  # 空列表，避免异步加载
+                }
 
             # 创建报价单
             quote = Quote(

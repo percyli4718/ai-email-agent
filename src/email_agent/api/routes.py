@@ -59,8 +59,12 @@ from email_agent.storage.models import EmailTemplate, Email as EmailModel
 from email_agent.generator.email_generator import EmailGenerator
 from email_agent.generator.template_service import EmailTemplateService
 from email_agent.config import settings
+from email_agent.logging_config import get_logger
 
 router = APIRouter()
+
+# 获取日志记录器
+logger = get_logger(__name__)
 
 # 获取数据库实例
 db = get_database(settings)
@@ -1364,13 +1368,16 @@ async def generate_quote(request: QuoteGenerateRequest):
     if analysis and analysis.get("layer1_classification"):
         products = analysis["layer1_classification"].get("products_mentioned", [])
 
+    # 获取邮件区域信息
+    email = await db.get_email_by_id(request.email_id)
+    region = email.get("region", "default") if email else "default"
+
     if products:
-        region = email.get("region", "default")
         pricing = await db.query_pricing_policy(products, region)
         context["pricing_policy"] = pricing
 
     # 获取合规要求
-    if region:
+    if products and region:
         compliance = await db.query_compliance_requirements(products, region)
         context["compliance"] = compliance
 
