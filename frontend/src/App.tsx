@@ -187,7 +187,7 @@ const App: React.FC = () => {
 
       {/* 主内容区 - 三列布局 */}
       <main className="flex-1 overflow-hidden">
-        <div className="h-full px-6 py-6">
+        <div className="h-full px-6 py-6 flex flex-col min-h-0">
         {activeTab === 'inbox' && (
           <InboxTab
             selectedEmail={selectedEmail}
@@ -320,7 +320,7 @@ const InboxTab: React.FC<InboxTabProps> = ({
   }, [emails.length]);
 
   return (
-    <div className="grid grid-cols-12 gap-4 h-full">
+    <div className="grid grid-cols-12 gap-4 h-full min-h-0">
       {/* 左侧列 - 邮件列表（2.5 列） */}
       <div className="col-span-3 bg-[#1e293b] rounded-xl border border-[#334155] overflow-hidden flex flex-col min-h-0">
         <div className="px-4 py-3 border-b border-[#334155] flex items-center justify-between flex-shrink-0">
