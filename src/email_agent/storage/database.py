@@ -1601,6 +1601,7 @@ class Database:
 
         功能描述:
             将邮件工作流转换到新状态，并记录历史。
+            同时同步更新 Email 表的 status 字段。
 
         状态机流转规则:
             pending → processing → awaiting_approval → approved → completed
@@ -1617,7 +1618,7 @@ class Database:
         返回值:
             dict: 更新后的工作流字典，失败返回空字典
         """
-        from email_agent.storage.models import EmailWorkflow, WorkflowHistory
+        from email_agent.storage.models import EmailWorkflow, WorkflowHistory, Email
         from sqlalchemy import select, update, insert
 
         valid_transitions = {
@@ -1629,6 +1630,18 @@ class Database:
             "completed": [],
             "failed": ["pending"],  # 可以重试
             "cancelled": []
+        }
+
+        # 工作流状态到 Email 状态的映射
+        workflow_to_email_status = {
+            "pending": "pending",
+            "processing": "processing",
+            "awaiting_approval": "processing",
+            "approved": "completed",
+            "completed": "completed",
+            "rejected": "pending",
+            "failed": "pending",
+            "cancelled": "pending"
         }
 
         async with self.session() as session:
@@ -1653,12 +1666,22 @@ class Database:
                 )
                 return {}
 
-            # 更新状态
+            # 更新工作流状态
             stmt = update(EmailWorkflow).where(
                 EmailWorkflow.email_id == email_id
             ).values(
                 current_state=new_state,
                 updated_at=datetime.utcnow()
+            )
+            await session.execute(stmt)
+
+            # 同步更新 Email 表的 status 字段
+            email_status = workflow_to_email_status.get(new_state, "pending")
+            stmt = update(Email).where(
+                Email.id == email_id
+            ).values(
+                status=email_status,
+                received_at=Email.received_at  # 不修改接收时间，只是触发更新
             )
             await session.execute(stmt)
 
