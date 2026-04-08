@@ -744,6 +744,7 @@ class Database:
             dict: 分析结果字典，不存在则返回 None
         """
         from email_agent.storage.models import EmailAnalysis
+        import json
 
         async with self.session() as session:
             stmt = select(EmailAnalysis).where(EmailAnalysis.email_id == email_id)
@@ -751,12 +752,24 @@ class Database:
             analysis = result.scalars().first()
 
             if analysis:
+                # 解析 JSON 字符串为字典
+                layer1 = analysis.layer1_classification
+                layer2 = analysis.layer2_retrieval
+                layer3 = analysis.layer3_output
+
+                if isinstance(layer1, str):
+                    layer1 = json.loads(layer1)
+                if isinstance(layer2, str):
+                    layer2 = json.loads(layer2)
+                if isinstance(layer3, str):
+                    layer3 = json.loads(layer3)
+
                 return {
                     "id": analysis.id,
                     "email_id": analysis.email_id,
-                    "layer1_classification": analysis.layer1_classification,
-                    "layer2_retrieval": analysis.layer2_retrieval,
-                    "layer3_output": analysis.layer3_output,
+                    "layer1_classification": layer1,
+                    "layer2_retrieval": layer2,
+                    "layer3_output": layer3,
                     "processing_time_ms": analysis.processing_time_ms,
                     "cost": analysis.cost,
                     "model_used": analysis.model_used,

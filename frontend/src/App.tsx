@@ -437,8 +437,8 @@ const InboxTab: React.FC<InboxTabProps> = ({
                 <WorkflowTimeline workflow={workflow} loading={!workflow} />
 
                 {/* 邮件内容 */}
-                <div className="bg-[#0f172a] border border-[#1e293b] rounded-lg p-4">
-                  <h3 className="text-sm font-semibold text-[#e2e8f0] mb-3">📧 邮件内容</h3>
+                <div className="bg-[#0f172a] border border-[#1e293b] rounded-lg p-4 max-h-[400px] overflow-y-auto">
+                  <h3 className="text-sm font-semibold text-[#e2e8f0] mb-3 sticky top-0 bg-[#0f172a]">📧 邮件内容</h3>
                   {emailDetail ? (
                     <div className="space-y-2">
                       <div className="text-xs text-[#64748b]">
