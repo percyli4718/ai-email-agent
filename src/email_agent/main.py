@@ -39,7 +39,7 @@ async def lifespan(app: FastAPI):
 
     功能描述:
         管理 FastAPI 应用的启动和关闭流程。
-        启动时：初始化日志系统，记录启动日志，初始化数据库连接
+        启动时：初始化日志系统，记录启动日志，初始化数据库连接和表结构
         关闭时：关闭数据库连接，记录关闭日志
 
     参数:
@@ -59,8 +59,10 @@ async def lifespan(app: FastAPI):
     setup_logging(settings.log_level)
     logger.info("application_starting", env=settings.env)
 
-    # 初始化数据库连接
+    # 初始化数据库连接和表结构
     db = get_database(settings)
+    await db.init_tables()
+    logger.info("database_initialized")
 
     # 等待应用运行...
     yield
